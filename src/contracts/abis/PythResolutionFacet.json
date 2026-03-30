@@ -1,0 +1,567 @@
+[
+  {
+    "type": "function",
+    "name": "createPriceMarketPyth",
+    "inputs": [
+      {
+        "name": "venueId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "pythFeedId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "strikePrice",
+        "type": "int64",
+        "internalType": "int64"
+      },
+      {
+        "name": "closeTime",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "outcomes",
+        "type": "string[]",
+        "internalType": "string[]"
+      },
+      {
+        "name": "tickSize",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "collateralToken",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "ancillaryData",
+        "type": "bytes",
+        "internalType": "bytes"
+      },
+      {
+        "name": "liveness",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "tags",
+        "type": "bytes32[]",
+        "internalType": "bytes32[]"
+      },
+      {
+        "name": "resolutionWindow",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "pythUpdateData",
+        "type": "bytes[]",
+        "internalType": "bytes[]"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "getPythContract",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "resolvePriceMarketPyth",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "pythUpdateData",
+        "type": "bytes[]",
+        "internalType": "bytes[]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "setPythContract",
+    "inputs": [
+      {
+        "name": "pythContract",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "MarketCreated",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "venueId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "creator",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "conditionId",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "collateralToken",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "tickSize",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "question",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "outcomes",
+        "type": "string[]",
+        "indexed": false,
+        "internalType": "string[]"
+      },
+      {
+        "name": "groupId",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "tags",
+        "type": "bytes32[]",
+        "indexed": false,
+        "internalType": "bytes32[]"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "MarketCreationFeeCollected",
+    "inputs": [
+      {
+        "name": "venueId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "payer",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "protocolShare",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "venueShare",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "MarketGroupResolved",
+    "inputs": [
+      {
+        "name": "groupId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "winningMarketId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "MarketResolved",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "questionId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "outcome",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PriceMarketCreatedPyth",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "venueId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "pythFeedId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "strikePrice",
+        "type": "int64",
+        "indexed": false,
+        "internalType": "int64"
+      },
+      {
+        "name": "priceExpo",
+        "type": "int32",
+        "indexed": false,
+        "internalType": "int32"
+      },
+      {
+        "name": "openTime",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "closeTime",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "resolutionWindow",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PriceMarketResolvedPyth",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "finalPrice",
+        "type": "int64",
+        "indexed": false,
+        "internalType": "int64"
+      },
+      {
+        "name": "strikePrice",
+        "type": "int64",
+        "indexed": false,
+        "internalType": "int64"
+      },
+      {
+        "name": "outcome",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PythContractUpdated",
+    "inputs": [
+      {
+        "name": "pythContract",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "WrappedCollateralRegistered",
+    "inputs": [
+      {
+        "name": "underlyingCollateral",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "wrappedCollateral",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "CloseTimeNotReached",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "CloseTimeTooFar",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "CloseTimeTooSoon",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "CollateralNotWhitelisted",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "CreationAccessDenied",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ETHRefundFailed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FeedProviderMismatch",
+    "inputs": [
+      {
+        "name": "expected",
+        "type": "uint8",
+        "internalType": "enum FeedProvider"
+      },
+      {
+        "name": "actual",
+        "type": "uint8",
+        "internalType": "enum FeedProvider"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "InsufficientPythFee",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidAddress",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidCollateral",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidMarketId",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidMarketId",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidOutcomesLength",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidTickSize",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidTickSize",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidTickSize",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MarketNotActive",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotContractOwner",
+    "inputs": [
+      {
+        "name": "_user",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "_contractOwner",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "NotPriceMarket",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "OracleAlreadyExists",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "OracleCtfNotSet",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "PriceMarketAlreadyResolved",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ProtocolPaused",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "PythContractNotConfigured",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "RegistryAlreadyExists",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TooManyTags",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TradingAlreadyExists",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TransferFromFailed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "VenueInactive",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "VenueNotFound",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "VenueSuspended",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ZeroAddress",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ZeroStrikePrice",
+    "inputs": []
+  }
+]

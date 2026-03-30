@@ -1,0 +1,276 @@
+[
+  {
+    "type": "function",
+    "name": "canMatchOrders",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct MatchPreview",
+        "components": [
+          {
+            "name": "normalYesCross",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "normalNoCross",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "mintFeasible",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "mergeFeasible",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "anyMatchable",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "yesBestBid",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "yesBestAsk",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "noBestBid",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "noBestAsk",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "yesBidHeadExpired",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "yesAskHeadExpired",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "noBidHeadExpired",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "noAskHeadExpired",
+            "type": "bool",
+            "internalType": "bool"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getFill",
+    "inputs": [
+      {
+        "name": "fillId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct Fill",
+        "components": [
+          {
+            "name": "id",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "marketId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "path",
+            "type": "uint8",
+            "internalType": "enum SettlementPath"
+          },
+          {
+            "name": "order1Id",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "order2Id",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "qty",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "priceTick",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "operator",
+            "type": "address",
+            "internalType": "address"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getMarkPrice",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "outcomeId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "priceTick",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "isDefined",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getNextFillId",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getTickLevel",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "outcomeId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "side",
+        "type": "uint8",
+        "internalType": "enum Side"
+      },
+      {
+        "name": "tick",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct TickLevel",
+        "components": [
+          {
+            "name": "headOrderId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "tailOrderId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "depth",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "totalQty",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getTopOfBook",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "outcomeId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "side",
+        "type": "uint8",
+        "internalType": "enum Side"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  }
+]
