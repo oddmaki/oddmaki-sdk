@@ -1,17 +1,19 @@
 # OddMaki SDK
 
+[![npm](https://img.shields.io/npm/v/@oddmaki-protocol/sdk)](https://www.npmjs.com/package/@oddmaki-protocol/sdk)
+
 TypeScript SDK for the [OddMaki Protocol](https://github.com/oddmaki/oddmaki-core) — a fully on-chain prediction market factory on Base. Built on [viem](https://viem.sh/).
 
 ## Install
 
 ```bash
-pnpm add @oddmaki/sdk viem
+pnpm add @oddmaki-protocol/sdk viem
 ```
 
 ## Quick Start
 
 ```typescript
-import { createOddMakiClient } from "@oddmaki/sdk";
+import { createOddMakiClient } from "@oddmaki-protocol/sdk";
 
 const client = createOddMakiClient({
   walletClient, // viem WalletClient
@@ -79,7 +81,7 @@ const leaders = await client.public.getLeaderboard("totalVolume", "desc");
 ## Utilities
 
 ```typescript
-import { priceToTick, tickToPrice, parseAmount } from "@oddmaki/sdk";
+import { priceToTick, tickToPrice, parseAmount } from "@oddmaki-protocol/sdk";
 
 priceToTick("0.80");    // 80n
 tickToPrice(80n);        // "0.80"
