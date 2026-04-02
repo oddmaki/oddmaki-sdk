@@ -76,13 +76,26 @@ jobs:
           echo "bump=$BUMP" >> "$GITHUB_OUTPUT"
           echo "Determined bump type: $BUMP"
 
-      - name: Bump version
+      - name: Calculate next version
         id: version
         run: |
-          npm version ${{ steps.bump.outputs.bump }} --no-git-tag-version
-          VERSION=$(node -p "require('./package.json').version")
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          CURRENT=${LATEST_TAG#v}
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+
+          BUMP="${{ steps.bump.outputs.bump }}"
+          case "$BUMP" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+          esac
+
+          VERSION="${MAJOR}.${MINOR}.${PATCH}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "New version: $VERSION"
+          echo "Next version: $VERSION (from tag $LATEST_TAG, bump: $BUMP)"
+
+      - name: Set version in package.json
+        run: npm version ${{ steps.version.outputs.version }} --no-git-tag-version
 
       - name: Lint
         run: pnpm run lint
@@ -96,14 +109,10 @@ jobs:
       - name: Publish to npm
         run: npm publish --access public
 
-      - name: Commit release
+      - name: Push tag
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add package.json
-          git commit -m "chore: release v${{ steps.version.outputs.version }}"
           git tag "v${{ steps.version.outputs.version }}"
-          git push origin HEAD --tags
+          git push origin "v${{ steps.version.outputs.version }}"
 
       - name: Create GitHub Release
         env:
