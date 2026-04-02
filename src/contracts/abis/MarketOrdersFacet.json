@@ -61,6 +61,67 @@
     "stateMutability": "nonpayable"
   },
   {
+    "type": "function",
+    "name": "placeMarketSell",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "outcomeId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "tokenAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "minPriceTick",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "orderType",
+        "type": "uint8",
+        "internalType": "enum MarketOrderType"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "result",
+        "type": "tuple",
+        "internalType": "struct MarketSellResult",
+        "components": [
+          {
+            "name": "tokensSold",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "avgPrice",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "collateralReceived",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "unsoldTokens",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
     "type": "event",
     "name": "FeesDistributed",
     "inputs": [
@@ -160,6 +221,55 @@
   },
   {
     "type": "event",
+    "name": "MarketSellExecuted",
+    "inputs": [
+      {
+        "name": "seller",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "outcomeId",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "tokensSold",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "collateralReceived",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "avgPrice",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "unsoldTokens",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "OrderDeleted",
     "inputs": [
       {
@@ -239,12 +349,37 @@
   },
   {
     "type": "error",
+    "name": "InvalidMinPrice",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "InvalidOutcome",
     "inputs": []
   },
   {
     "type": "error",
     "name": "MarketNotActive",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MarketPaused",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NoLiquidityAvailable",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ProtocolPaused",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TradingAccessDenied",
     "inputs": []
   },
   {
@@ -259,17 +394,27 @@
   },
   {
     "type": "error",
-    "name": "ZeroCollateralAmount",
-    "inputs": []
-  },
-  {
-    "type": "error",
     "name": "VenueInactive",
     "inputs": []
   },
   {
     "type": "error",
     "name": "VenueNotFound",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "VenueSuspended",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ZeroCollateralAmount",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ZeroTokenAmount",
     "inputs": []
   }
 ]

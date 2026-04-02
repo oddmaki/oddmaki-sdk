@@ -265,6 +265,16 @@
             "name": "tickSize",
             "type": "uint256",
             "internalType": "uint256"
+          },
+          {
+            "name": "venueFeeBps",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "creatorFeeBps",
+            "type": "uint256",
+            "internalType": "uint256"
           }
         ]
       }
@@ -466,6 +476,37 @@
   },
   {
     "type": "event",
+    "name": "MarketCreationFeeCollected",
+    "inputs": [
+      {
+        "name": "venueId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "payer",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "protocolShare",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "venueShare",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "MarketPausedEvent",
     "inputs": [
       {
@@ -510,37 +551,6 @@
         "type": "address",
         "indexed": true,
         "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "MarketCreationFeeCollected",
-    "inputs": [
-      {
-        "name": "venueId",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      },
-      {
-        "name": "payer",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "protocolShare",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
-        "name": "venueShare",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
       }
     ],
     "anonymous": false
@@ -628,6 +638,11 @@
   },
   {
     "type": "error",
+    "name": "CollateralNotWhitelisted",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "CreationAccessDenied",
     "inputs": []
   },
@@ -673,16 +688,6 @@
   },
   {
     "type": "error",
-    "name": "InvalidTickSize",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "InvalidTickSize",
-    "inputs": []
-  },
-  {
-    "type": "error",
     "name": "MarketGroupNotFound",
     "inputs": []
   },
@@ -698,6 +703,11 @@
   },
   {
     "type": "error",
+    "name": "OnlyVenueOperator",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "OracleAlreadyExists",
     "inputs": []
   },
@@ -709,6 +719,11 @@
   {
     "type": "error",
     "name": "OracleNotInitialized",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ProtocolPaused",
     "inputs": []
   },
   {
@@ -744,6 +759,11 @@
   {
     "type": "error",
     "name": "VenueNotFound",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "VenueSuspended",
     "inputs": []
   }
 ]

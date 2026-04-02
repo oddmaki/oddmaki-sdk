@@ -217,25 +217,6 @@
   },
   {
     "type": "event",
-    "name": "MarketGroupResolved",
-    "inputs": [
-      {
-        "name": "groupId",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      },
-      {
-        "name": "winningMarketId",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
     "name": "MarketResolved",
     "inputs": [
       {
@@ -451,16 +432,6 @@
   {
     "type": "error",
     "name": "InvalidOutcomesLength",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "InvalidTickSize",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "InvalidTickSize",
     "inputs": []
   },
   {

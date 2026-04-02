@@ -9,3 +9,4 @@ coverage/
 
 # Logs
 *.log
+.claude/settings.json

@@ -19,6 +19,7 @@
     "test": "vitest run",
     "test:live": "vitest run --config vitest.live.config.ts",
     "test:watch": "vitest",
+    "sync-core": "node scripts/sync-core.js",
     "prepublishOnly": "pnpm run lint && pnpm run test && pnpm run build"
   },
   "keywords": [

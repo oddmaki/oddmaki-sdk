@@ -321,6 +321,11 @@
   },
   {
     "type": "error",
+    "name": "CollateralNotWhitelisted",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "CreationAccessDenied",
     "inputs": []
   },
@@ -341,12 +346,22 @@
   },
   {
     "type": "error",
+    "name": "InvalidTickSize",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "MarketGroupNotFound",
     "inputs": []
   },
   {
     "type": "error",
     "name": "NotGroupCreator",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ProtocolPaused",
     "inputs": []
   },
   {
@@ -367,6 +382,11 @@
   {
     "type": "error",
     "name": "VenueNotFound",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "VenueSuspended",
     "inputs": []
   }
 ]

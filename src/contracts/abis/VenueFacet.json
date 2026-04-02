@@ -356,6 +356,31 @@
   },
   {
     "type": "event",
+    "name": "VenueAccessControlUpdated",
+    "inputs": [
+      {
+        "name": "venueId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "tradingAccessControl",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "creationAccessControl",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "VenueCreated",
     "inputs": [
       {
@@ -521,6 +546,11 @@
   },
   {
     "type": "error",
+    "name": "InvalidTickSize",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "InvalidVenueFee",
     "inputs": []
   },
@@ -536,12 +566,22 @@
   },
   {
     "type": "error",
+    "name": "ProtocolPaused",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "VenueInactive",
     "inputs": []
   },
   {
     "type": "error",
     "name": "VenueNotFound",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "VenueSuspended",
     "inputs": []
   }
 ]

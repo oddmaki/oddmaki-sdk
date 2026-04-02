@@ -3,11 +3,23 @@
     "type": "function",
     "name": "canTradeOnMarket",
     "inputs": [
-      { "name": "user", "type": "address", "internalType": "address" },
-      { "name": "marketId", "type": "uint256", "internalType": "uint256" }
+      {
+        "name": "user",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
     "outputs": [
-      { "name": "", "type": "bool", "internalType": "bool" }
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
     ],
     "stateMutability": "view"
   },
@@ -15,12 +27,28 @@
     "type": "function",
     "name": "deployNFTGatedAC",
     "inputs": [
-      { "name": "nftContract", "type": "address", "internalType": "address" },
-      { "name": "isERC1155", "type": "bool", "internalType": "bool" },
-      { "name": "tokenId", "type": "uint256", "internalType": "uint256" }
+      {
+        "name": "nftContract",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "isERC1155",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
     "outputs": [
-      { "name": "acContract", "type": "address", "internalType": "address" }
+      {
+        "name": "acContract",
+        "type": "address",
+        "internalType": "address"
+      }
     ],
     "stateMutability": "nonpayable"
   },
@@ -28,11 +56,23 @@
     "type": "function",
     "name": "deployTokenGatedAC",
     "inputs": [
-      { "name": "token", "type": "address", "internalType": "address" },
-      { "name": "minBalance", "type": "uint256", "internalType": "uint256" }
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "minBalance",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
     "outputs": [
-      { "name": "acContract", "type": "address", "internalType": "address" }
+      {
+        "name": "acContract",
+        "type": "address",
+        "internalType": "address"
+      }
     ],
     "stateMutability": "nonpayable"
   },
@@ -41,7 +81,11 @@
     "name": "deployWhitelistAC",
     "inputs": [],
     "outputs": [
-      { "name": "acContract", "type": "address", "internalType": "address" }
+      {
+        "name": "acContract",
+        "type": "address",
+        "internalType": "address"
+      }
     ],
     "stateMutability": "nonpayable"
   },
@@ -49,10 +93,18 @@
     "type": "function",
     "name": "getMarketTradingAccessControl",
     "inputs": [
-      { "name": "marketId", "type": "uint256", "internalType": "uint256" }
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
     "outputs": [
-      { "name": "", "type": "address", "internalType": "address" }
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
     ],
     "stateMutability": "view"
   },
@@ -60,7 +112,11 @@
     "type": "function",
     "name": "removeMarketTradingAccessControl",
     "inputs": [
-      { "name": "marketId", "type": "uint256", "internalType": "uint256" }
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
@@ -69,8 +125,16 @@
     "type": "function",
     "name": "setMarketTradingAccessControl",
     "inputs": [
-      { "name": "marketId", "type": "uint256", "internalType": "uint256" },
-      { "name": "acContract", "type": "address", "internalType": "address" }
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "acContract",
+        "type": "address",
+        "internalType": "address"
+      }
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
@@ -79,9 +143,24 @@
     "type": "event",
     "name": "AccessControlDeployed",
     "inputs": [
-      { "name": "deployer", "type": "address", "indexed": true, "internalType": "address" },
-      { "name": "acContract", "type": "address", "indexed": true, "internalType": "address" },
-      { "name": "acType", "type": "string", "indexed": false, "internalType": "string" }
+      {
+        "name": "deployer",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "acContract",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "acType",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
     ],
     "anonymous": false
   },
@@ -89,7 +168,12 @@
     "type": "event",
     "name": "MarketTradingAccessControlRemoved",
     "inputs": [
-      { "name": "marketId", "type": "uint256", "indexed": true, "internalType": "uint256" }
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      }
     ],
     "anonymous": false
   },
@@ -97,9 +181,44 @@
     "type": "event",
     "name": "MarketTradingAccessControlSet",
     "inputs": [
-      { "name": "marketId", "type": "uint256", "indexed": true, "internalType": "uint256" },
-      { "name": "acContract", "type": "address", "indexed": true, "internalType": "address" }
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "acContract",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
     ],
     "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "OnlyVenueOperator",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ProtocolPaused",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "VenueInactive",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "VenueNotFound",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "VenueSuspended",
+    "inputs": []
   }
 ]

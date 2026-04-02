@@ -1,24 +1,6 @@
 [
   {
     "type": "function",
-    "name": "updateMarketMetadata",
-    "inputs": [
-      {
-        "name": "marketId",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "metadataURI",
-        "type": "string",
-        "internalType": "string"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "updateMarketGroupMetadata",
     "inputs": [
       {
@@ -36,11 +18,29 @@
     "stateMutability": "nonpayable"
   },
   {
-    "type": "event",
-    "name": "MarketMetadataUpdated",
+    "type": "function",
+    "name": "updateMarketMetadata",
     "inputs": [
       {
         "name": "marketId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "metadataURI",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "MarketGroupMetadataUpdated",
+    "inputs": [
+      {
+        "name": "groupId",
         "type": "uint256",
         "indexed": true,
         "internalType": "uint256"
@@ -56,10 +56,10 @@
   },
   {
     "type": "event",
-    "name": "MarketGroupMetadataUpdated",
+    "name": "MarketMetadataUpdated",
     "inputs": [
       {
-        "name": "groupId",
+        "name": "marketId",
         "type": "uint256",
         "indexed": true,
         "internalType": "uint256"
