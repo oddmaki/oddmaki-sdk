@@ -110,6 +110,7 @@ export const GET_MARKET = gql`
       question
       outcomes
       status
+      resolvedOutcome
       collateralToken
       conditionId
       tickSize
@@ -430,6 +431,7 @@ export const GET_GROUP_MARKETS = gql`
       question
       outcomes
       status
+      resolvedOutcome
       collateralToken
       conditionId
       tickSize
