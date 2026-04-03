@@ -253,6 +253,110 @@ export class TradeModule extends BaseModule {
   }
 
   /**
+   * Execute a market sell order (FOK or FAK)
+   *
+   * @param params.marketId - The market to sell on
+   * @param params.outcomeId - Which outcome to sell (0=YES, 1=NO)
+   * @param params.tokenAmount - Amount of outcome tokens to sell
+   * @param params.minPriceTick - Minimum price tick willing to accept (slippage protection)
+   * @param params.orderType - 0=FOK (Fill-Or-Kill), 1=FAK (Fill-And-Kill)
+   */
+  async placeMarketSell(params: {
+    marketId: bigint;
+    outcomeId: bigint;
+    tokenAmount: bigint;
+    minPriceTick: bigint;
+    orderType: number; // 0 = FOK, 1 = FAK
+  }) {
+    const wallet = this.walletClient;
+    const [account] = await wallet.getAddresses();
+
+    const { request } = await this.publicClient.simulateContract({
+      address: this.config.diamondAddress,
+      abi: MarketOrdersFacetABI,
+      functionName: 'placeMarketSell',
+      args: [
+        params.marketId,
+        params.outcomeId,
+        params.tokenAmount,
+        params.minPriceTick,
+        params.orderType,
+      ],
+      account,
+    });
+
+    return wallet.writeContract(request);
+  }
+
+  /**
+   * Execute a market sell order with simple string inputs (recommended for frontends)
+   * @param params.amount - Token amount as decimal string (e.g., "100.5")
+   * @param params.minPrice - Minimum price as decimal string (e.g., "0.70")
+   * @param params.orderType - 'FOK' or 'FAK' (default: 'FAK')
+   */
+  async placeMarketSellSimple(params: {
+    marketId: bigint;
+    outcomeId: bigint;
+    amount: string;
+    minPrice: string;
+    orderType?: 'FOK' | 'FAK';
+  }) {
+    // Get market trading data to determine collateral token decimals
+    // (outcome tokens use same decimals as collateral)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tradingData: any = await this.publicClient.readContract({
+      address: this.config.diamondAddress,
+      abi: MarketsFacetABI,
+      functionName: 'getMarketTradingData',
+      args: [params.marketId],
+    });
+
+    const collateralToken = tradingData.collateralToken as Address;
+    const decimals = await getCachedTokenDecimals(this.publicClient, collateralToken);
+    const tokenAmount = parseTokenAmount(params.amount, decimals);
+    const minPriceTick = priceToTick(params.minPrice);
+    const orderType = params.orderType === 'FOK' ? 0 : 1;
+
+    return this.placeMarketSell({
+      marketId: params.marketId,
+      outcomeId: params.outcomeId,
+      tokenAmount,
+      minPriceTick,
+      orderType,
+    });
+  }
+
+  /**
+   * Preview a market sell order (simulate transaction)
+   */
+  async previewMarketSell(params: {
+    marketId: bigint;
+    outcomeId: bigint;
+    tokenAmount: bigint;
+    minPriceTick: bigint;
+    orderType: number;
+  }) {
+    const wallet = this.walletClient;
+    const [account] = await wallet.getAddresses();
+
+    const { result } = await this.publicClient.simulateContract({
+      address: this.config.diamondAddress,
+      abi: MarketOrdersFacetABI,
+      functionName: 'placeMarketSell',
+      args: [
+        params.marketId,
+        params.outcomeId,
+        params.tokenAmount,
+        params.minPriceTick,
+        params.orderType,
+      ],
+      account,
+    });
+
+    return result;
+  }
+
+  /**
    * Watch for MarketOrderExecuted events
    */
   watchMarketOrder(
@@ -264,6 +368,23 @@ export class TradeModule extends BaseModule {
       address: this.config.diamondAddress,
       abi: MarketOrdersFacetABI,
       eventName: 'MarketOrderExecuted',
+      args: { marketId },
+      onLogs,
+    });
+  }
+
+  /**
+   * Watch for MarketSellExecuted events
+   */
+  watchMarketSell(
+    marketId: bigint,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onLogs: (logs: any[]) => void
+  ) {
+    return this.publicClient.watchContractEvent({
+      address: this.config.diamondAddress,
+      abi: MarketOrdersFacetABI,
+      eventName: 'MarketSellExecuted',
       args: { marketId },
       onLogs,
     });
