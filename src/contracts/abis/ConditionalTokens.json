@@ -21,7 +21,7 @@
     ],
     "outputs": [
       {
-        "name": "",
+        "name": "collectionId",
         "type": "bytes32",
         "internalType": "bytes32"
       }
@@ -50,7 +50,7 @@
     ],
     "outputs": [
       {
-        "name": "",
+        "name": "conditionId",
         "type": "bytes32",
         "internalType": "bytes32"
       }
@@ -69,12 +69,36 @@
     ],
     "outputs": [
       {
-        "name": "",
+        "name": "outcomeSlotCount",
         "type": "uint256",
         "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getPositionId",
+    "inputs": [
+      {
+        "name": "collateralToken",
+        "type": "address",
+        "internalType": "contract IERC20"
+      },
+      {
+        "name": "collectionId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "positionId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "pure"
   },
   {
     "type": "function",
@@ -111,6 +135,49 @@
   },
   {
     "type": "function",
+    "name": "payoutDenominator",
+    "inputs": [
+      {
+        "name": "conditionId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "payoutNumerators",
+    "inputs": [
+      {
+        "name": "conditionId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "index",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "prepareCondition",
     "inputs": [
       {
@@ -127,6 +194,34 @@
         "name": "outcomeSlotCount",
         "type": "uint256",
         "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "redeemPositions",
+    "inputs": [
+      {
+        "name": "collateralToken",
+        "type": "address",
+        "internalType": "contract IERC20"
+      },
+      {
+        "name": "parentCollectionId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "conditionId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "indexSets",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
       }
     ],
     "outputs": [],
@@ -182,5 +277,29 @@
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "balanceOf",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "id",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
   }
 ]
