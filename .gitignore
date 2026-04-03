@@ -10,3 +10,4 @@ coverage/
 # Logs
 *.log
 .claude/settings.json
+.DS_Store

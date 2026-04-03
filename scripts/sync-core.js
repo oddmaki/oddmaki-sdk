@@ -38,6 +38,7 @@ const CHAIN_MAP = {
 // ---------------------------------------------------------------------------
 const ABI_OVERRIDES = {
   ConditionalTokens: 'IConditionalTokens.sol/IConditionalTokens.json',
+  ERC20: 'MockERC20.sol/MockERC20.json',
 };
 
 // ---------------------------------------------------------------------------
