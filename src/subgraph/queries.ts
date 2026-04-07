@@ -838,6 +838,7 @@ export const GET_RECENT_TRADES = gql`
       market {
         marketId
         question
+        outcomes
         venue {
           venueId
           name
