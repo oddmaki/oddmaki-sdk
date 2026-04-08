@@ -607,8 +607,10 @@ export const GET_UNIFIED_MARKET_FEED_BY_VOLUME = gql`
       status
       collateralToken
       groupId
+      tickSize
       lastPriceTick_0
       lastPriceTick_1
+      lastTradeTimestamp
       totalVolume
       totalOrders
       uniqueTraders
@@ -635,17 +637,28 @@ export const GET_UNIFIED_MARKET_FEED_BY_VOLUME = gql`
       marketQuestion
       status
       totalMarkets
+      activeMarketCount
+      resolvedMarketId
       tags
       metadataURI
-      resolvedMarketId
       createdAt
+      activatedAt
+      resolvedAt
       venue {
         id
         venueId
         name
       }
+      creator {
+        id
+        address
+      }
       markets {
+        id
         marketId
+        question
+        status
+        groupId
         tickSize
         lastPriceTick_0
         lastPriceTick_1
@@ -774,9 +787,12 @@ export const GET_ALL_MARKETS_FEED_BY_VOLUME = gql`
       outcomes
       status
       collateralToken
+      conditionId
+      tickSize
       groupId
       lastPriceTick_0
       lastPriceTick_1
+      lastTradeTimestamp
       totalVolume
       totalOrders
       uniqueTraders
@@ -786,6 +802,10 @@ export const GET_ALL_MARKETS_FEED_BY_VOLUME = gql`
         id
         venueId
         name
+      }
+      creator {
+        id
+        address
       }
     }
 
@@ -801,16 +821,28 @@ export const GET_ALL_MARKETS_FEED_BY_VOLUME = gql`
       marketQuestion
       status
       totalMarkets
-      metadataURI
+      activeMarketCount
       resolvedMarketId
+      metadataURI
       createdAt
+      activatedAt
+      resolvedAt
       venue {
         id
         venueId
         name
       }
+      creator {
+        id
+        address
+      }
       markets {
+        id
         marketId
+        question
+        status
+        groupId
+        tickSize
         lastPriceTick_0
         lastPriceTick_1
         totalVolume
