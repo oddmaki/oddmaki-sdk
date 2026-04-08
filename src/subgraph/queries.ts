@@ -61,6 +61,13 @@ export const GET_MARKETS = gql`
       lastPriceTick_0
       lastPriceTick_1
       lastTradeTimestamp
+      lastTradeTimestamp_0
+      lastTradeTimestamp_1
+      topOfBook {
+        outcome
+        side
+        topTick
+      }
       tags
       metadataURI
     }
@@ -92,6 +99,14 @@ export const GET_MARKETS_WITH_PRICING = gql`
       lastPriceTick_0
       lastPriceTick_1
       lastTradeTimestamp
+      lastTradeTimestamp_0
+      lastTradeTimestamp_1
+      # Top of book for mark price calculation
+      topOfBook {
+        outcome
+        side
+        topTick
+      }
       # Statistics
       totalVolume
       totalOrders
@@ -117,6 +132,13 @@ export const GET_MARKET = gql`
       lastPriceTick_0
       lastPriceTick_1
       lastTradeTimestamp
+      lastTradeTimestamp_0
+      lastTradeTimestamp_1
+      topOfBook {
+        outcome
+        side
+        topTick
+      }
       totalVolume
       totalOrders
       totalFees
@@ -445,6 +467,13 @@ export const GET_GROUP_MARKETS = gql`
       lastPriceTick_0
       lastPriceTick_1
       lastTradeTimestamp
+      lastTradeTimestamp_0
+      lastTradeTimestamp_1
+      topOfBook {
+        outcome
+        side
+        topTick
+      }
       totalVolume
       totalOrders
       createdAt
@@ -511,6 +540,13 @@ export const GET_UNIFIED_MARKET_FEED = gql`
       lastPriceTick_0
       lastPriceTick_1
       lastTradeTimestamp
+      lastTradeTimestamp_0
+      lastTradeTimestamp_1
+      topOfBook {
+        outcome
+        side
+        topTick
+      }
       # Statistics
       totalVolume
       totalOrders
@@ -611,6 +647,13 @@ export const GET_UNIFIED_MARKET_FEED_BY_VOLUME = gql`
       lastPriceTick_0
       lastPriceTick_1
       lastTradeTimestamp
+      lastTradeTimestamp_0
+      lastTradeTimestamp_1
+      topOfBook {
+        outcome
+        side
+        topTick
+      }
       totalVolume
       totalOrders
       uniqueTraders
@@ -702,6 +745,13 @@ export const GET_ALL_MARKETS_FEED = gql`
       lastPriceTick_0
       lastPriceTick_1
       lastTradeTimestamp
+      lastTradeTimestamp_0
+      lastTradeTimestamp_1
+      topOfBook {
+        outcome
+        side
+        topTick
+      }
       totalVolume
       totalOrders
       uniqueTraders
@@ -793,6 +843,13 @@ export const GET_ALL_MARKETS_FEED_BY_VOLUME = gql`
       lastPriceTick_0
       lastPriceTick_1
       lastTradeTimestamp
+      lastTradeTimestamp_0
+      lastTradeTimestamp_1
+      topOfBook {
+        outcome
+        side
+        topTick
+      }
       totalVolume
       totalOrders
       uniqueTraders

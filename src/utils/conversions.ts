@@ -283,3 +283,173 @@ export function getOutcomePrice(market: SubgraphMarketPriceData, outcomeIndex: n
   const yesPercent = tickToPercentage(yesTick, tickSize);
   return outcomeIndex === 0 ? yesPercent : (100 - yesPercent);
 }
+
+// ============================================
+// Mark Price Calculation (Polymarket-style)
+// ============================================
+
+/**
+ * Top-of-book entry from subgraph TopOfBook entity.
+ */
+export interface TopOfBookEntry {
+  outcome: string; // "0" or "1"
+  side: string; // "BUY" or "SELL"
+  topTick: string; // tick value, "0" if empty
+}
+
+/**
+ * Input for calculateChancePercent — accepts subgraph market data.
+ */
+export interface ChancePercentInput {
+  tickSize: string;
+  status?: string;
+  resolvedOutcome?: number | string | null;
+  lastPriceTick_0?: string | null;
+  lastPriceTick_1?: string | null;
+  lastTradeTimestamp_0?: string | null;
+  lastTradeTimestamp_1?: string | null;
+  topOfBook?: TopOfBookEntry[];
+}
+
+/** Spread threshold in dollars — matches Polymarket's $0.10 threshold. */
+const MARK_PRICE_SPREAD_THRESHOLD = 0.10;
+
+/**
+ * Calculate the "chance %" for a binary market using a Polymarket-style waterfall:
+ *
+ * 1. **Implied mark price** (midpoint of implied Yes bid/ask) — if spread ≤ $0.10
+ * 2. **Last trade** (most recent trade from either side) — if book empty or spread > $0.10
+ * 3. **50%** — no data
+ *
+ * Implied prices account for cross-outcome liquidity via mint/merge paths:
+ * - No BUY at tick N → implied Yes ASK at (maxTicks - N) via Mint path
+ * - No SELL at tick N → implied Yes BID at (maxTicks - N) via Merge path
+ *
+ * @param market - Subgraph market data with top-of-book and last trade info
+ * @returns Chance percentage (0-100)
+ */
+export function calculateChancePercent(market: ChancePercentInput): number {
+  const tickSizeNum = parseFloat(market.tickSize || '0');
+  if (tickSizeNum === 0) return 50;
+
+  // Resolved markets: winning = 100%, losing = 0%
+  if (market.status === 'Resolved' && market.resolvedOutcome != null) {
+    return parseInt(String(market.resolvedOutcome)) === 0 ? 100 : 0;
+  }
+
+  const maxTicks = 1e18 / tickSizeNum;
+
+  // Step 1: Try mark price from top-of-book (implied midpoint)
+  if (market.topOfBook && market.topOfBook.length > 0) {
+    const tob = parseTopOfBook(market.topOfBook);
+    const result = computeImpliedMidpoint(tob, maxTicks, tickSizeNum);
+    if (result !== null) return result;
+  }
+
+  // Step 2: Fall back to most recent trade (either side)
+  return lastTradeFallback(market, tickSizeNum);
+}
+
+/**
+ * Parsed top-of-book values (all in raw tick units).
+ */
+interface ParsedTopOfBook {
+  yesBid: number;
+  yesAsk: number;
+  noBid: number;
+  noAsk: number;
+}
+
+/**
+ * Parse the TopOfBook array into the 4 values we need.
+ */
+function parseTopOfBook(entries: TopOfBookEntry[]): ParsedTopOfBook {
+  const result: ParsedTopOfBook = { yesBid: 0, yesAsk: 0, noBid: 0, noAsk: 0 };
+
+  for (const entry of entries) {
+    const tick = parseFloat(entry.topTick || '0');
+    const outcome = entry.outcome?.toString();
+    const side = entry.side;
+
+    if (outcome === '0' && side === 'BUY') result.yesBid = tick;
+    else if (outcome === '0' && side === 'SELL') result.yesAsk = tick;
+    else if (outcome === '1' && side === 'BUY') result.noBid = tick;
+    else if (outcome === '1' && side === 'SELL') result.noAsk = tick;
+  }
+
+  return result;
+}
+
+/**
+ * Compute the implied Yes midpoint from top-of-book data.
+ * Returns the chance percentage, or null if we can't compute a valid midpoint.
+ */
+function computeImpliedMidpoint(
+  tob: ParsedTopOfBook,
+  maxTicks: number,
+  tickSize: number,
+): number | null {
+  // Compute implied Yes bid: max(direct Yes bid, complement of No ask via merge)
+  const bidCandidates: number[] = [];
+  if (tob.yesBid > 0) bidCandidates.push(tob.yesBid);
+  if (tob.noAsk > 0) bidCandidates.push(maxTicks - tob.noAsk);
+
+  // Compute implied Yes ask: min(direct Yes ask, complement of No bid via mint)
+  const askCandidates: number[] = [];
+  if (tob.yesAsk > 0) askCandidates.push(tob.yesAsk);
+  if (tob.noBid > 0) askCandidates.push(maxTicks - tob.noBid);
+
+  // Need both a bid and an ask to compute midpoint
+  if (bidCandidates.length === 0 || askCandidates.length === 0) return null;
+
+  const impliedBid = Math.max(...bidCandidates);
+  const impliedAsk = Math.min(...askCandidates);
+
+  // Check spread threshold (in dollar terms)
+  const spreadDollars = ((impliedAsk - impliedBid) * tickSize) / 1e18;
+  if (spreadDollars > MARK_PRICE_SPREAD_THRESHOLD) return null;
+
+  // Midpoint → percentage
+  const midTick = (impliedBid + impliedAsk) / 2;
+  const percent = (midTick * tickSize / 1e18) * 100;
+  return parseFloat(Math.max(0, Math.min(100, percent)).toFixed(2));
+}
+
+/**
+ * Fall back to the most recent trade from either side.
+ * If per-outcome timestamps are available, use the more recent one.
+ * Otherwise, use whichever lastPriceTick is available (with complement derivation for No).
+ */
+function lastTradeFallback(market: ChancePercentInput, tickSize: number): number {
+  const tick0 = parseFloat(market.lastPriceTick_0 || '0');
+  const tick1 = parseFloat(market.lastPriceTick_1 || '0');
+  const ts0 = parseFloat(market.lastTradeTimestamp_0 || '0');
+  const ts1 = parseFloat(market.lastTradeTimestamp_1 || '0');
+
+  // Both outcomes have trades: use the more recent one
+  if (tick0 > 0 && tick1 > 0) {
+    if (ts0 > 0 || ts1 > 0) {
+      // Per-outcome timestamps available — use most recent
+      if (ts0 >= ts1) {
+        return parseFloat(((tick0 * tickSize / 1e18) * 100).toFixed(2));
+      }
+      // No side is more recent — derive Yes via complement
+      return parseFloat(((1 - (tick1 * tickSize / 1e18)) * 100).toFixed(2));
+    }
+    // No per-outcome timestamps (pre-migration data) — prefer Yes price
+    return parseFloat(((tick0 * tickSize / 1e18) * 100).toFixed(2));
+  }
+
+  // Only Yes traded
+  if (tick0 > 0) {
+    return parseFloat(((tick0 * tickSize / 1e18) * 100).toFixed(2));
+  }
+
+  // Only No traded — derive Yes via complement
+  if (tick1 > 0) {
+    return parseFloat(((1 - (tick1 * tickSize / 1e18)) * 100).toFixed(2));
+  }
+
+  // No data at all
+  return 50;
+}

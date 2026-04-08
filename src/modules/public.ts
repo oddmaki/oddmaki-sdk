@@ -1,4 +1,5 @@
 import { BaseModule } from './base';
+import { calculateChancePercent } from '../utils/conversions';
 import {
   GET_VENUES,
   GET_MARKETS,
@@ -302,23 +303,22 @@ export class PublicModule extends BaseModule {
   }
 
   /**
-   * Calculate probability for a market using last trade price
+   * Calculate probability for a market using mark price waterfall.
    * Returns probability as a decimal string (e.g., "0.65" for 65%)
    *
-   * @param market - Market object from subgraph
+   * Uses Polymarket-style pricing: implied midpoint → last trade → default 50%.
+   *
+   * @param market - Market object from subgraph (with topOfBook and timestamp fields)
    * @returns Probability string or null if no data available
    */
   calculateMarketProbability(market: any): string | null {
-    // Use last trade price
-    if (market.lastPriceTick_0 && market.tickSize) {
-      const tick = BigInt(market.lastPriceTick_0);
-      const tickSize = BigInt(market.tickSize);
-      const price = Number(tick * tickSize) / 1e18;
-      return price.toFixed(2);
-    }
+    if (!market.tickSize) return null;
 
-    // Default: No data
-    return null;
+    const chance = calculateChancePercent(market);
+    if (chance === 50 && !market.lastPriceTick_0 && !market.lastPriceTick_1) {
+      return null; // Truly no data — keep null for "no probability" display
+    }
+    return (chance / 100).toFixed(2);
   }
 
   /**
