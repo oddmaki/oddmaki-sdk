@@ -1,5 +1,5 @@
 import { BaseModule } from './base';
-import { VenueFacetABI } from '../contracts';
+import { VenueFacetABI, ProtocolFacetABI } from '../contracts';
 
 export class VenueModule extends BaseModule {
   /**
@@ -188,5 +188,37 @@ export class VenueModule extends BaseModule {
       functionName: 'canCreateMarket',
       args: [user, venueId],
     }) as Promise<boolean>;
+  }
+
+  // ---- Protocol Fee (owner-only) ----
+
+  /**
+   * Get the current protocol fee in basis points. Snapshotted per market at creation.
+   */
+  async getProtocolFeeBps(): Promise<bigint> {
+    return this.publicClient.readContract({
+      address: this.config.diamondAddress,
+      abi: ProtocolFacetABI,
+      functionName: 'getProtocolFeeBps',
+    }) as Promise<bigint>;
+  }
+
+  /**
+   * Set the protocol fee in basis points. Owner-only. Max 200 bps (2%).
+   * Only affects markets created after this call (existing markets retain their snapshot).
+   */
+  async setProtocolFeeBps(bps: bigint) {
+    const wallet = this.walletClient;
+    const [account] = await wallet.getAddresses();
+
+    const { request } = await this.publicClient.simulateContract({
+      address: this.config.diamondAddress,
+      abi: ProtocolFacetABI,
+      functionName: 'setProtocolFeeBps',
+      args: [bps],
+      account,
+    });
+
+    return wallet.writeContract(request);
   }
 }

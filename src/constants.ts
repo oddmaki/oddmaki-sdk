@@ -5,11 +5,12 @@
 
 /**
  * Fee Constants
- * Fixed protocol-level fee tiers (not configurable per-market)
+ * Protocol fee is configurable on-chain (0-200 bps) and snapshotted per market at creation.
+ * These are the default values set at deployment.
  */
 export const PROTOCOL_FEES = {
-  /** Protocol fee: 20 bps (0.20%) */
-  PROTOCOL_FEE_BPS: 20n,
+  /** Protocol fee: 50 bps (0.50%) — configurable via ProtocolFacet.setProtocolFeeBps() */
+  PROTOCOL_FEE_BPS: 50n,
   /** Operator fee: 10 bps (0.10%) for match operators */
   OPERATOR_FEE_BPS: 10n,
 } as const;
