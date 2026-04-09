@@ -392,6 +392,7 @@ export const GET_MARKET_GROUPS = gql`
       totalMarkets
       activeMarketCount
       resolvedMarketId
+      reward
       tags
       metadataURI
       venue {

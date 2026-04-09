@@ -275,6 +275,11 @@
             "name": "creatorFeeBps",
             "type": "uint256",
             "internalType": "uint256"
+          },
+          {
+            "name": "protocolFeeBps",
+            "type": "uint256",
+            "internalType": "uint256"
           }
         ]
       }

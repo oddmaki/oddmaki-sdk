@@ -63,8 +63,11 @@ export class MarketModule extends BaseModule {
       args: [params.venueId],
     });
 
-    const feeRequired = venue.marketCreationFee;
-    if (feeRequired > 0n) {
+    const feeRequired = BigInt(venue.marketCreationFee);
+    const reward = BigInt(venue.umaRewardAmount) + (params.additionalReward ?? 0n);
+    const totalRequired = feeRequired + reward;
+
+    if (totalRequired > 0n) {
       const allowance = await this.publicClient.readContract({
         address: params.collateralToken,
         abi: erc20Abi,
@@ -72,9 +75,9 @@ export class MarketModule extends BaseModule {
         args: [account, this.config.diamondAddress],
       });
 
-      if (allowance < feeRequired) {
+      if (allowance < totalRequired) {
         throw new Error(
-          `Insufficient allowance for Market Creation Fee. Approved: ${allowance.toString()}, Required: ${feeRequired.toString()}. Please approve the Diamond (${
+          `Insufficient allowance. Approved: ${allowance.toString()}, Required: ${totalRequired.toString()} (fee: ${feeRequired.toString()}, reward: ${reward.toString()}). Please approve the Diamond (${
             this.config.diamondAddress
           }).`,
         );
@@ -87,9 +90,9 @@ export class MarketModule extends BaseModule {
         args: [account],
       });
 
-      if (balance < feeRequired) {
+      if (balance < totalRequired) {
         throw new Error(
-          `Insufficient collateral balance for Market Creation Fee. Have: ${balance.toString()}, Required: ${feeRequired.toString()}. Please acquire more tokens.`,
+          `Insufficient collateral balance. Have: ${balance.toString()}, Required: ${totalRequired.toString()} (fee: ${feeRequired.toString()}, reward: ${reward.toString()}).`,
         );
       }
     }
@@ -398,8 +401,11 @@ export class MarketModule extends BaseModule {
       args: [params.venueId],
     });
 
-    const feeRequired = venue.marketCreationFee;
-    if (feeRequired > 0n) {
+    const feeRequired = BigInt(venue.marketCreationFee);
+    const reward = BigInt(venue.umaRewardAmount) + (params.additionalReward ?? 0n);
+    const totalRequired = feeRequired + reward;
+
+    if (totalRequired > 0n) {
       const allowance = await this.publicClient.readContract({
         address: params.collateralToken,
         abi: erc20Abi,
@@ -407,9 +413,9 @@ export class MarketModule extends BaseModule {
         args: [account, this.config.diamondAddress],
       });
 
-      if (allowance < feeRequired) {
+      if (allowance < totalRequired) {
         throw new Error(
-          `Insufficient allowance for Market Group Creation Fee. Approved: ${allowance.toString()}, Required: ${feeRequired.toString()}. Please approve the Diamond (${
+          `Insufficient allowance. Approved: ${allowance.toString()}, Required: ${totalRequired.toString()} (fee: ${feeRequired.toString()}, reward: ${reward.toString()}). Please approve the Diamond (${
             this.config.diamondAddress
           }).`,
         );
@@ -422,9 +428,9 @@ export class MarketModule extends BaseModule {
         args: [account],
       });
 
-      if (balance < feeRequired) {
+      if (balance < totalRequired) {
         throw new Error(
-          `Insufficient collateral balance for Market Group Creation Fee. Have: ${balance.toString()}, Required: ${feeRequired.toString()}.`,
+          `Insufficient collateral balance. Have: ${balance.toString()}, Required: ${totalRequired.toString()} (fee: ${feeRequired.toString()}, reward: ${reward.toString()}).`,
         );
       }
     }

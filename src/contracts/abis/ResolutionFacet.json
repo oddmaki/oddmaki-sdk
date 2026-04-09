@@ -89,6 +89,11 @@
             "name": "settled",
             "type": "bool",
             "internalType": "bool"
+          },
+          {
+            "name": "asserter",
+            "type": "address",
+            "internalType": "address"
           }
         ]
       }
@@ -278,6 +283,31 @@
     "anonymous": false
   },
   {
+    "type": "event",
+    "name": "RewardPaid",
+    "inputs": [
+      {
+        "name": "assertionId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "asserter",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "reward",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
     "type": "error",
     "name": "ApproveFailed",
     "inputs": []
@@ -325,6 +355,11 @@
   {
     "type": "error",
     "name": "OutcomeMismatch",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TransferFailed",
     "inputs": []
   },
   {

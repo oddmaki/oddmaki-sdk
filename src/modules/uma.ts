@@ -8,6 +8,17 @@ import {
 import { erc20Abi } from 'viem';
 import type { Address } from 'viem';
 
+/** Minimal ABI for UMA Optimistic Oracle V3 getMinimumBond */
+const optimisticOracleV3Abi = [
+  {
+    inputs: [{ name: 'currency', type: 'address' }],
+    name: 'getMinimumBond',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+] as const;
+
 /**
  * UMA Module - Handles oracle assertion and resolution operations
  *
@@ -47,17 +58,9 @@ export class UmaModule extends BaseModule {
 
     const questionId = registryData.questionId as `0x${string}`;
 
-    // Step 2: Get oracle data for bond requirements
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const oracleData: any = await this.publicClient.readContract({
-      address: this.config.diamondAddress,
-      abi: MarketsFacetABI,
-      functionName: 'getMarketOracleData',
-      args: [params.marketId],
-    });
-
-    const bondAmount = BigInt(oracleData.requiredBond);
-    const currency = oracleData.currency as Address;
+    // Step 2: Get effective bond (max of requiredBond and UMA's minimumBond)
+    const { effectiveBond, currency } = await this.getEffectiveBond(params.marketId);
+    const bondAmount = effectiveBond;
 
     // Step 3: Check current allowance (approve Diamond, which delegates to ResolutionFacet)
     const currentAllowance = (await this.publicClient.readContract({
@@ -129,6 +132,45 @@ export class UmaModule extends BaseModule {
     });
 
     return wallet.writeContract(request);
+  }
+
+  /**
+   * Get the effective bond for a market, accounting for UMA's minimum bond.
+   * The contract uses max(requiredBond, oo.getMinimumBond(currency)).
+   */
+  async getEffectiveBond(marketId: bigint): Promise<{
+    requiredBond: bigint;
+    minimumBond: bigint;
+    effectiveBond: bigint;
+    currency: Address;
+  }> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const oracleData: any = await this.publicClient.readContract({
+      address: this.config.diamondAddress,
+      abi: MarketsFacetABI,
+      functionName: 'getMarketOracleData',
+      args: [marketId],
+    });
+
+    const requiredBond = BigInt(oracleData.requiredBond);
+    const currency = oracleData.currency as Address;
+
+    const umaOracle = (await this.publicClient.readContract({
+      address: this.config.diamondAddress,
+      abi: ProtocolFacetABI,
+      functionName: 'getUmaOracle',
+    })) as Address;
+
+    const minimumBond = (await this.publicClient.readContract({
+      address: umaOracle,
+      abi: optimisticOracleV3Abi,
+      functionName: 'getMinimumBond',
+      args: [currency],
+    })) as bigint;
+
+    const effectiveBond = requiredBond > minimumBond ? requiredBond : minimumBond;
+
+    return { requiredBond, minimumBond, effectiveBond, currency };
   }
 
   /**
