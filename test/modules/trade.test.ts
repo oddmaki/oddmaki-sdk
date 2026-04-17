@@ -8,6 +8,7 @@ import { LimitOrdersFacetABI, MarketOrdersFacetABI } from '../../src/contracts';
 // Mock viem
 const mockSimulateContract = vi.fn();
 const mockGetAddresses = vi.fn();
+const mockWriteContract = vi.fn();
 
 vi.mock('viem', async (importOriginal) => {
   const actual = await importOriginal();
@@ -18,6 +19,7 @@ vi.mock('viem', async (importOriginal) => {
     })),
     createWalletClient: vi.fn(() => ({
       getAddresses: mockGetAddresses,
+      writeContract: mockWriteContract,
     })),
   };
 });
@@ -38,6 +40,7 @@ describe('TradeModule', () => {
     vi.clearAllMocks();
     module = new TradeModule(config);
     mockGetAddresses.mockResolvedValue(['0xUser']);
+    mockWriteContract.mockResolvedValue('0xtxhash');
   });
 
   it('should preview market order', async () => {
@@ -62,6 +65,27 @@ describe('TradeModule', () => {
       account: '0xUser',
     });
     expect(result).toEqual(mockResult);
+  });
+
+  it('should batch-cancel all orders on a resolved market via cancelOrdersOnResolvedMarket', async () => {
+    const mockRequest = { foo: 'bar' };
+    mockSimulateContract.mockResolvedValue({ request: mockRequest });
+
+    const marketId = 42n;
+    // More than 2 orders — matches the batch cancellation scenario.
+    const orderIds = [1n, 2n, 3n, 4n];
+
+    const txHash = await module.cancelOrdersOnResolvedMarket(marketId, orderIds);
+
+    expect(mockSimulateContract).toHaveBeenCalledWith({
+      address: config.diamondAddress,
+      abi: LimitOrdersFacetABI,
+      functionName: 'cancelOrdersOnResolvedMarket',
+      args: [marketId, orderIds],
+      account: '0xUser',
+    });
+    expect(mockWriteContract).toHaveBeenCalledWith(mockRequest);
+    expect(txHash).toBe('0xtxhash');
   });
 
   it('should preview place order', async () => {

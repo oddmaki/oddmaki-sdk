@@ -118,6 +118,28 @@ export class TradeModule extends BaseModule {
   }
 
   /**
+   * Cancel all remaining orders on a resolved market in a single transaction.
+   * Regular cancelOrder / batchCancelOrders revert once the market is no longer
+   * active, so this is the only way to clear stale orders post-resolution.
+   * @param marketId - The resolved market
+   * @param orderIds - Order IDs to cancel (must belong to caller)
+   */
+  async cancelOrdersOnResolvedMarket(marketId: bigint, orderIds: bigint[]) {
+    const wallet = this.walletClient;
+    const [account] = await wallet.getAddresses();
+
+    const { request } = await this.publicClient.simulateContract({
+      address: this.config.diamondAddress,
+      abi: LimitOrdersFacetABI,
+      functionName: 'cancelOrdersOnResolvedMarket',
+      args: [marketId, orderIds],
+      account,
+    });
+
+    return wallet.writeContract(request);
+  }
+
+  /**
    * Execute a market order (FOK or FAK)
    *
    * @param params.marketId - The market to buy on
