@@ -118,6 +118,32 @@
     "stateMutability": "nonpayable"
   },
   {
+    "type": "function",
+    "name": "setOpenMaxStaleness",
+    "inputs": [
+      {
+        "name": "openMaxStaleness",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "getOpenMaxStaleness",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
     "type": "event",
     "name": "MarketCreated",
     "inputs": [
@@ -335,6 +361,19 @@
         "type": "address",
         "indexed": true,
         "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "OpenMaxStalenessUpdated",
+    "inputs": [
+      {
+        "name": "openMaxStaleness",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
       }
     ],
     "anonymous": false
