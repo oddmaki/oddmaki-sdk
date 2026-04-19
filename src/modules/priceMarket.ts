@@ -35,7 +35,26 @@ export interface PriceMarketData {
   resolutionWindow: bigint;
   resolved: boolean;
   strikePrice: bigint;
+  /**
+   * Pyth VAA publishTime for the opening-price capture (seconds since epoch).
+   * 0 for strike markets (no opening price is captured).
+   */
+  openPriceTime: bigint;
 }
+
+/**
+ * Latest Pyth price update data plus the signed VAA's publishTime.
+ * `fetchedAt` is the SDK-local unix timestamp (seconds) at fetch time.
+ */
+export interface PythUpdate {
+  updateData: `0x${string}`[];
+  publishTime: bigint;
+  fetchedAt: bigint;
+}
+
+/** Default cap for freshness helper retries. */
+const DEFAULT_FRESH_MAX_AGE_SECONDS = 120;
+const DEFAULT_FRESH_MAX_ATTEMPTS = 3;
 
 export class PriceMarketModule extends BaseModule {
   /**
@@ -221,6 +240,7 @@ export class PriceMarketModule extends BaseModule {
       resolutionWindow: BigInt(result[6]),
       resolved: result[7] as boolean,
       strikePrice: BigInt(result[8]),
+      openPriceTime: BigInt(result[9]),
     };
   }
 
@@ -233,6 +253,58 @@ export class PriceMarketModule extends BaseModule {
       abi: PythResolutionFacetABI,
       functionName: 'getPythContract',
     })) as Address;
+  }
+
+  /**
+   * Set the Pyth oracle contract address. Diamond owner only.
+   */
+  async setPythContract(pythContract: Address) {
+    const wallet = this.walletClient;
+    const [account] = await wallet.getAddresses();
+
+    const { request } = await this.publicClient.simulateContract({
+      address: this.config.diamondAddress,
+      abi: PythResolutionFacetABI,
+      functionName: 'setPythContract',
+      args: [pythContract],
+      account,
+    });
+
+    return wallet.writeContract(request);
+  }
+
+  /**
+   * Get the effective opening-price staleness window in seconds.
+   *
+   * A submitted VAA's `publishTime` must fall within
+   * `[block.timestamp - openMaxStaleness, block.timestamp + OPEN_FUTURE_SKEW]`
+   * at `createPriceMarketPyth` time. Defaults to 300s when unset on-chain.
+   */
+  async getOpenMaxStaleness(): Promise<bigint> {
+    return (await this.publicClient.readContract({
+      address: this.config.diamondAddress,
+      abi: PythResolutionFacetABI,
+      functionName: 'getOpenMaxStaleness',
+    })) as bigint;
+  }
+
+  /**
+   * Set the opening-price staleness window (seconds). Diamond owner only.
+   * Pass 0 to fall back to the built-in default.
+   */
+  async setOpenMaxStaleness(openMaxStaleness: bigint) {
+    const wallet = this.walletClient;
+    const [account] = await wallet.getAddresses();
+
+    const { request } = await this.publicClient.simulateContract({
+      address: this.config.diamondAddress,
+      abi: PythResolutionFacetABI,
+      functionName: 'setOpenMaxStaleness',
+      args: [openMaxStaleness],
+      account,
+    });
+
+    return wallet.writeContract(request);
   }
 
   // ---- Private helpers ----
@@ -313,27 +385,94 @@ export class PriceMarketModule extends BaseModule {
   }
 
   /**
-   * Fetch latest Pyth price update data from Hermes API
+   * Fetch latest Pyth price update from Hermes — bytes plus the VAA's publishTime.
+   *
+   * Use this (or {@link fetchFreshPythUpdate}) instead of re-rolling Hermes
+   * calls when building `createPriceMarketPyth` transactions. The on-chain
+   * staleness window defaults to 300s — if the user takes longer than that
+   * to sign, the VAA will be rejected.
    */
-  private async fetchPythUpdateData(
-    feedId: `0x${string}`,
-  ): Promise<`0x${string}`[]> {
+  async fetchPythLatestUpdate(feedId: `0x${string}`): Promise<PythUpdate> {
     const url = `${PYTH_HERMES_BASE}/v2/updates/price/latest?ids[]=${feedId}`;
     const response = await fetch(url);
 
     if (!response.ok) {
-      throw new Error(`Pyth Hermes API error: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Pyth Hermes API error: ${response.status} ${response.statusText}`,
+      );
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const data: any = await response.json();
-    const updateData = data.binary?.data;
+    const updateData: string[] | undefined = data.binary?.data;
 
     if (!updateData || updateData.length === 0) {
       throw new Error('No price update data returned from Pyth Hermes');
     }
 
-    return updateData.map((d: string) => `0x${d}` as `0x${string}`);
+    const parsed = data.parsed?.[0];
+    const publishTimeRaw = parsed?.price?.publish_time;
+    if (typeof publishTimeRaw !== 'number') {
+      throw new Error('Pyth Hermes response missing parsed.price.publish_time');
+    }
+
+    return {
+      updateData: updateData.map((d) => `0x${d}` as `0x${string}`),
+      publishTime: BigInt(publishTimeRaw),
+      fetchedAt: BigInt(Math.floor(Date.now() / 1000)),
+    };
+  }
+
+  /**
+   * Return a Pyth update that is fresh enough to pass the on-chain staleness check.
+   *
+   * If `cached` is provided and still within `maxAgeSeconds`, it is returned as-is.
+   * Otherwise Hermes is re-queried; if the newly fetched VAA is also older than
+   * `maxAgeSeconds` (e.g. feed is quiet), it retries up to `maxAttempts`.
+   *
+   * Defaults: `maxAgeSeconds = 120` (leaves ~180s headroom under the 300s default
+   * on-chain window), `maxAttempts = 3`.
+   */
+  async fetchFreshPythUpdate(
+    feedId: `0x${string}`,
+    options: {
+      maxAgeSeconds?: number;
+      maxAttempts?: number;
+      cached?: PythUpdate;
+    } = {},
+  ): Promise<PythUpdate> {
+    const maxAgeSeconds = options.maxAgeSeconds ?? DEFAULT_FRESH_MAX_AGE_SECONDS;
+    const maxAttempts = options.maxAttempts ?? DEFAULT_FRESH_MAX_ATTEMPTS;
+
+    const isFresh = (u: PythUpdate): boolean => {
+      const now = BigInt(Math.floor(Date.now() / 1000));
+      return now - u.publishTime <= BigInt(maxAgeSeconds);
+    };
+
+    if (options.cached && isFresh(options.cached)) {
+      return options.cached;
+    }
+
+    let latest: PythUpdate | undefined;
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      latest = await this.fetchPythLatestUpdate(feedId);
+      if (isFresh(latest)) return latest;
+    }
+
+    if (!latest) {
+      throw new Error('Failed to fetch any Pyth update from Hermes');
+    }
+    return latest;
+  }
+
+  /**
+   * Fetch latest Pyth price update data from Hermes API (raw bytes only).
+   */
+  private async fetchPythUpdateData(
+    feedId: `0x${string}`,
+  ): Promise<`0x${string}`[]> {
+    const { updateData } = await this.fetchPythLatestUpdate(feedId);
+    return updateData;
   }
 
   /**

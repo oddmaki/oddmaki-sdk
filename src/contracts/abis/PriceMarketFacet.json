@@ -73,6 +73,11 @@
         "name": "strikePrice",
         "type": "int64",
         "internalType": "int64"
+      },
+      {
+        "name": "openPriceTime",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
