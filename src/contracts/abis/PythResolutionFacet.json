@@ -75,6 +75,19 @@
   },
   {
     "type": "function",
+    "name": "getOpenMaxStaleness",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "getPythContract",
     "inputs": [],
     "outputs": [
@@ -106,19 +119,6 @@
   },
   {
     "type": "function",
-    "name": "setPythContract",
-    "inputs": [
-      {
-        "name": "pythContract",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "setOpenMaxStaleness",
     "inputs": [
       {
@@ -132,16 +132,16 @@
   },
   {
     "type": "function",
-    "name": "getOpenMaxStaleness",
-    "inputs": [],
-    "outputs": [
+    "name": "setPythContract",
+    "inputs": [
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
+        "name": "pythContract",
+        "type": "address",
+        "internalType": "address"
       }
     ],
-    "stateMutability": "view"
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "event",
@@ -268,6 +268,19 @@
   },
   {
     "type": "event",
+    "name": "OpenMaxStalenessUpdated",
+    "inputs": [
+      {
+        "name": "openMaxStaleness",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "PriceMarketCreatedPyth",
     "inputs": [
       {
@@ -361,19 +374,6 @@
         "type": "address",
         "indexed": true,
         "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "OpenMaxStalenessUpdated",
-    "inputs": [
-      {
-        "name": "openMaxStaleness",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
       }
     ],
     "anonymous": false
@@ -485,6 +485,11 @@
   },
   {
     "type": "error",
+    "name": "NoValidPriceUpdate",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "NotContractOwner",
     "inputs": [
       {
@@ -532,6 +537,11 @@
   {
     "type": "error",
     "name": "RegistryAlreadyExists",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ResolutionWindowTooLarge",
     "inputs": []
   },
   {

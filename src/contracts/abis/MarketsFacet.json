@@ -280,6 +280,16 @@
             "name": "protocolFeeBps",
             "type": "uint256",
             "internalType": "uint256"
+          },
+          {
+            "name": "protocolFeeRecipient",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "venueFeeRecipient",
+            "type": "address",
+            "internalType": "address"
           }
         ]
       }

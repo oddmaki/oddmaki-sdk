@@ -288,6 +288,16 @@
   },
   {
     "type": "error",
+    "name": "MakerErc165CallFailed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MakerNotErc1155Receiver",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "MarketNotActive",
     "inputs": []
   },

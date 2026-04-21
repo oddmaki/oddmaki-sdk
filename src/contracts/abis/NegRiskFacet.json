@@ -65,5 +65,32 @@
     "type": "error",
     "name": "ApproveFailed",
     "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "DuplicateConditionId",
+    "inputs": [
+      {
+        "name": "conditionId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "InvalidIndexSet",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "UnregisteredConditionId",
+    "inputs": [
+      {
+        "name": "conditionId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ]
   }
 ]
