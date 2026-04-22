@@ -91,14 +91,14 @@ export class PriceMarketModule extends BaseModule {
     resolutionWindow?: bigint;
   }) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const outcomes = params.outcomes ?? ['Up', 'Down'];
     const isStrikeMarket = params.strikePrice && params.strikePrice > BigInt(0);
 
     // Pre-flight: check creation fee allowance + prepare common data
     const { encodedTags, ancillaryData } =
-      await this._prepareCreationCommon(params, account);
+      await this._prepareCreationCommon(params, await this.getSignerAddress());
 
     if (!isValidTickSize(params.tickSize)) {
       throw new Error('Invalid tickSize: must be 1e15 (0.1%) or 1e16 (1%)');
@@ -149,7 +149,7 @@ export class PriceMarketModule extends BaseModule {
    */
   async resolvePyth(marketId: bigint) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     // Get price market data to determine closeTime and feedId
     const pm = await this.get(marketId);
@@ -260,7 +260,7 @@ export class PriceMarketModule extends BaseModule {
    */
   async setPythContract(pythContract: Address) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,
@@ -294,7 +294,7 @@ export class PriceMarketModule extends BaseModule {
    */
   async setOpenMaxStaleness(openMaxStaleness: bigint) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,

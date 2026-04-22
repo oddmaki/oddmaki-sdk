@@ -10,7 +10,7 @@ export class AccessControlModule extends BaseModule {
    */
   async deployWhitelist() {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,
@@ -35,7 +35,7 @@ export class AccessControlModule extends BaseModule {
     tokenId: bigint;
   }) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,
@@ -58,7 +58,7 @@ export class AccessControlModule extends BaseModule {
     minBalance: bigint;
   }) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,
@@ -81,7 +81,7 @@ export class AccessControlModule extends BaseModule {
     acContract: `0x${string}`;
   }) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,
@@ -99,7 +99,7 @@ export class AccessControlModule extends BaseModule {
    */
   async removeMarketTradingAC(params: { marketId: bigint }) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,
@@ -153,7 +153,7 @@ export class AccessControlModule extends BaseModule {
     users: `0x${string}`[];
   }) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: params.acContract,
@@ -174,7 +174,7 @@ export class AccessControlModule extends BaseModule {
     users: `0x${string}`[];
   }) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: params.acContract,

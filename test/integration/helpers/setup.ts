@@ -33,8 +33,8 @@ export function hasTestAccount(): boolean {
  * check hasTestAccount() first.
  */
 export function getTestAccount() {
-  const key = process.env.ODDMAKI_TEST_PRIVATE_KEY;
-  if (!key) {
+  const raw = process.env.ODDMAKI_TEST_PRIVATE_KEY?.trim();
+  if (!raw) {
     throw new Error(
       'ODDMAKI_TEST_PRIVATE_KEY env var is not set.\n' +
         'Set it to a Base Sepolia private key with ETH for gas.\n' +
@@ -42,7 +42,8 @@ export function getTestAccount() {
         'Example: ODDMAKI_TEST_PRIVATE_KEY=0xabc... pnpm run test:live',
     );
   }
-  return privateKeyToAccount(key as Hex);
+  const key = (raw.startsWith('0x') ? raw : `0x${raw}`) as Hex;
+  return privateKeyToAccount(key);
 }
 
 /**
@@ -50,10 +51,11 @@ export function getTestAccount() {
  */
 export function createTestClient(): OddMakiClient {
   const account = getTestAccount();
+  const rpcUrl = process.env.ODDMAKI_TEST_RPC_URL;
   return createOddMakiClient({
     account,
     chain: baseSepolia,
-    transport: http(),
+    transport: http(rpcUrl),
   });
 }
 
@@ -88,7 +90,7 @@ export function parseEventFromReceipt(
         topics: log.topics,
       });
       if (decoded.eventName === eventName) {
-        return decoded.args as Record<string, unknown>;
+        return decoded.args as unknown as Record<string, unknown>;
       }
     } catch {
       // Log doesn't match this ABI — skip

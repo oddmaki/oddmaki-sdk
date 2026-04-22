@@ -33,7 +33,7 @@ export class VenueModule extends BaseModule {
     umaMinBond: bigint;
   }) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,
@@ -67,7 +67,7 @@ export class VenueModule extends BaseModule {
     creatorFeeBps: number;
   }) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,
@@ -85,7 +85,7 @@ export class VenueModule extends BaseModule {
    */
   async setPaused(venueId: bigint, paused: boolean) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const functionName = paused ? 'pauseVenue' : 'unpauseVenue';
 
@@ -124,7 +124,7 @@ export class VenueModule extends BaseModule {
     feeRecipient: `0x${string}`;
   }) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,
@@ -153,7 +153,7 @@ export class VenueModule extends BaseModule {
     umaMinBond: bigint;
   }) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,
@@ -209,7 +209,7 @@ export class VenueModule extends BaseModule {
    */
   async setProtocolFeeBps(bps: bigint) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,

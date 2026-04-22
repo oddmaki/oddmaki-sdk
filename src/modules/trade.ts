@@ -32,7 +32,7 @@ export class TradeModule extends BaseModule {
     expiry: bigint;
   }) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,
@@ -104,7 +104,7 @@ export class TradeModule extends BaseModule {
    */
   async cancelOrder(orderId: bigint) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,
@@ -126,7 +126,7 @@ export class TradeModule extends BaseModule {
    */
   async cancelOrdersOnResolvedMarket(marketId: bigint, orderIds: bigint[]) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,
@@ -156,7 +156,7 @@ export class TradeModule extends BaseModule {
     orderType: number; // 0 = FOK, 1 = FAK
   }) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,
@@ -223,7 +223,7 @@ export class TradeModule extends BaseModule {
     orderType: number;
   }) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { result } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,
@@ -254,7 +254,7 @@ export class TradeModule extends BaseModule {
     expiry: bigint;
   }) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { result } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,
@@ -291,7 +291,7 @@ export class TradeModule extends BaseModule {
     orderType: number; // 0 = FOK, 1 = FAK
   }) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,
@@ -359,7 +359,7 @@ export class TradeModule extends BaseModule {
     orderType: number;
   }) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { result } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,
@@ -432,7 +432,7 @@ export class TradeModule extends BaseModule {
    */
   async matchOrders(params: { marketId: bigint; maxSteps?: bigint }) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const maxSteps = params.maxSteps || 10n;
 
@@ -553,7 +553,7 @@ export class TradeModule extends BaseModule {
    */
   async splitPosition(marketId: bigint, amount: bigint) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,
@@ -574,7 +574,7 @@ export class TradeModule extends BaseModule {
    */
   async mergePositions(marketId: bigint, amount: bigint) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,
@@ -608,7 +608,7 @@ export class TradeModule extends BaseModule {
     }>;
   }) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,
@@ -671,7 +671,7 @@ export class TradeModule extends BaseModule {
    */
   async batchCancelOrders(orderIds: bigint[]) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,
@@ -703,7 +703,7 @@ export class TradeModule extends BaseModule {
     }>;
   }) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,
