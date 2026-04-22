@@ -70,7 +70,9 @@ export async function waitForTx(
   client: OddMakiClient,
   hash: Hex,
 ): Promise<TransactionReceipt> {
-  return client.config.publicClient.waitForTransactionReceipt({ hash });
+  // confirmations: 2 lets load-balanced RPC read replicas catch up so a
+  // follow-up read on the same contract doesn't hit a lagging node.
+  return client.config.publicClient.waitForTransactionReceipt({ hash, confirmations: 2 });
 }
 
 /**
