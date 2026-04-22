@@ -52,7 +52,8 @@ export class MarketModule extends BaseModule {
     tags?: string[];
   }) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
+    const accountAddress = await this.getSignerAddress();
 
     // Pre-flight checks: Market creation fee is determined by venue configuration
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -72,7 +73,7 @@ export class MarketModule extends BaseModule {
         address: params.collateralToken,
         abi: erc20Abi,
         functionName: 'allowance',
-        args: [account, this.config.diamondAddress],
+        args: [accountAddress, this.config.diamondAddress],
       });
 
       if (allowance < totalRequired) {
@@ -87,7 +88,7 @@ export class MarketModule extends BaseModule {
         address: params.collateralToken,
         abi: erc20Abi,
         functionName: 'balanceOf',
-        args: [account],
+        args: [accountAddress],
       });
 
       if (balance < totalRequired) {
@@ -390,7 +391,8 @@ export class MarketModule extends BaseModule {
     tags?: string[];
   }) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
+    const accountAddress = await this.getSignerAddress();
 
     // Pre-flight checks: Market creation fee (same as regular market)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -410,7 +412,7 @@ export class MarketModule extends BaseModule {
         address: params.collateralToken,
         abi: erc20Abi,
         functionName: 'allowance',
-        args: [account, this.config.diamondAddress],
+        args: [accountAddress, this.config.diamondAddress],
       });
 
       if (allowance < totalRequired) {
@@ -425,7 +427,7 @@ export class MarketModule extends BaseModule {
         address: params.collateralToken,
         abi: erc20Abi,
         functionName: 'balanceOf',
-        args: [account],
+        args: [accountAddress],
       });
 
       if (balance < totalRequired) {
@@ -474,7 +476,7 @@ export class MarketModule extends BaseModule {
     marketQuestion: string;
   }) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,
@@ -495,7 +497,7 @@ export class MarketModule extends BaseModule {
     count: bigint;
   }) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     if (params.count < 1n || params.count > 50n) {
       throw new Error('Count must be between 1 and 50');
@@ -522,7 +524,7 @@ export class MarketModule extends BaseModule {
     marketQuestion: string;
   }) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,
@@ -545,7 +547,7 @@ export class MarketModule extends BaseModule {
    */
   async activateMarketGroup(params: { marketGroupId: bigint }) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,
@@ -569,7 +571,7 @@ export class MarketModule extends BaseModule {
     amount: bigint;
   }) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     // Check CTF approval for Diamond
     const isApproved = await this.publicClient.readContract({
@@ -762,7 +764,7 @@ export class MarketModule extends BaseModule {
    */
   async pauseMarket(marketId: bigint) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,
@@ -781,7 +783,7 @@ export class MarketModule extends BaseModule {
    */
   async unpauseMarket(marketId: bigint) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,
@@ -807,7 +809,7 @@ export class MarketModule extends BaseModule {
     tags: string[];
   }) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const encodedTags = params.tags.map((t) =>
       stringToHex(t, { size: 32 }),
@@ -833,7 +835,7 @@ export class MarketModule extends BaseModule {
     tags: string[];
   }) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const encodedTags = params.tags.map((t) =>
       stringToHex(t, { size: 32 }),
@@ -863,7 +865,7 @@ export class MarketModule extends BaseModule {
     metadataURI: string;
   }) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,
@@ -885,7 +887,7 @@ export class MarketModule extends BaseModule {
     metadataURI: string;
   }) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,

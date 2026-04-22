@@ -44,7 +44,8 @@ export class UmaModule extends BaseModule {
     autoApprove?: boolean;
   }) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
+    const accountAddress = await this.getSignerAddress();
     const autoApprove = params.autoApprove ?? true;
 
     // Step 1: Get market registry data to find questionId
@@ -67,7 +68,7 @@ export class UmaModule extends BaseModule {
       address: currency,
       abi: erc20Abi,
       functionName: 'allowance',
-      args: [account, this.config.diamondAddress],
+      args: [accountAddress, this.config.diamondAddress],
     })) as bigint;
 
     // Step 4: Approve if needed
@@ -92,7 +93,7 @@ export class UmaModule extends BaseModule {
         address: currency,
         abi: erc20Abi,
         functionName: 'allowance',
-        args: [account, this.config.diamondAddress],
+        args: [accountAddress, this.config.diamondAddress],
       })) as bigint;
 
       if (newAllowance < bondAmount) {
@@ -113,7 +114,7 @@ export class UmaModule extends BaseModule {
       address: currency,
       abi: erc20Abi,
       functionName: 'balanceOf',
-      args: [account],
+      args: [accountAddress],
     })) as bigint;
 
     if (balance < bondAmount) {
@@ -178,7 +179,7 @@ export class UmaModule extends BaseModule {
    */
   async settleAssertion(assertionId: `0x${string}`) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,
@@ -196,7 +197,7 @@ export class UmaModule extends BaseModule {
    */
   async reportResolution(params: { marketId: bigint; outcome: string }) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,
@@ -275,7 +276,7 @@ export class UmaModule extends BaseModule {
    */
   async redeemWinnings(marketId: bigint) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const oracleData: any = await this.publicClient.readContract({

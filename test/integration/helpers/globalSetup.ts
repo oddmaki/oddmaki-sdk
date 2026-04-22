@@ -48,7 +48,7 @@ export async function setup() {
     defaultTickSize: parseEther('0.01'), // 1% ticks
     marketCreationFee: parseUnits('5', 6), // 5 USDC
     umaRewardAmount: 0n,
-    umaMinBond: 0n,
+    umaMinBond: parseUnits('1', 6), // 1 USDC — contract requires > 0
   });
 
   const venueReceipt = await waitForTx(client, venueTxHash);

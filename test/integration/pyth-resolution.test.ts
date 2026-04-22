@@ -30,9 +30,10 @@ describe.skipIf(!hasTestAccount())('Pyth price market', () => {
     // Mint + approve for market creation fee
     await mintAndApproveUSDC(client, parseUnits('100', 6));
 
-    // Create a strike market (no Pyth update data needed at creation time)
-    // Close time = 5 minutes from now (minimum allowed)
-    const closeTime = BigInt(Math.floor(Date.now() / 1000)) + 300n;
+    // Create a strike market (no Pyth update data needed at creation time).
+    // Contract requires closeTime >= block.timestamp + 300s. Add a 60s buffer
+    // so the check still passes once the tx actually mines.
+    const closeTime = BigInt(Math.floor(Date.now() / 1000)) + 360n;
 
     const txHash = await client.priceMarket.createPyth({
       venueId,

@@ -38,7 +38,7 @@ describe.skipIf(!hasTestAccount())('Venue lifecycle', () => {
       defaultTickSize: parseEther('0.01'),
       marketCreationFee: parseUnits('5', 6),
       umaRewardAmount: 0n,
-      umaMinBond: 0n,
+      umaMinBond: parseUnits('1', 6), // 1 USDC — contract requires > 0
     });
 
     const receipt = await waitForTx(client, txHash);
@@ -53,8 +53,8 @@ describe.skipIf(!hasTestAccount())('Venue lifecycle', () => {
     const venue: any = await client.venue.getVenue(venueId);
 
     expect(venue).toBeDefined();
-    expect(venue.venueFeeBps).toBe(50);
-    expect(venue.creatorFeeBps).toBe(25);
+    expect(BigInt(venue.venueFeeBps)).toBe(50n);
+    expect(BigInt(venue.creatorFeeBps)).toBe(25n);
     expect(BigInt(venue.defaultTickSize)).toBe(parseEther('0.01'));
     expect(BigInt(venue.marketCreationFee)).toBe(parseUnits('5', 6));
   });

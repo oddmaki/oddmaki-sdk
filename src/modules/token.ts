@@ -8,7 +8,7 @@ export class TokenModule extends BaseModule {
    */
   async mint(token: Address, to: Address, amount: bigint) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: token,
@@ -26,7 +26,7 @@ export class TokenModule extends BaseModule {
    */
   async approve(token: Address, spender: Address, amount: bigint) {
     const wallet = this.walletClient;
-    const [account] = await wallet.getAddresses();
+    const account = await this.getSignerAccount();
 
     const { request } = await this.publicClient.simulateContract({
       address: token,

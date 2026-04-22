@@ -70,18 +70,21 @@ describe.skipIf(!hasTestAccount())('Trading lifecycle', () => {
 
     const order: any = await client.trade.getOrder(buyOrderId);
     expect(order).toBeDefined();
-    expect(BigInt(order.tick)).toBe(600000000000000000n); // 0.60 * 1e18
+    // `tick` is the tick index (price / tickSize). 0.60 / 0.01 = 60.
+    expect(BigInt(order.tick)).toBe(60n);
 
     console.log(`  BUY order placed: orderId=${buyOrderId}`);
   });
 
   it('should place a SELL YES limit order at 0.55 (crosses spread)', async () => {
+    // Half the BUY size so the match leaves a partial residual we can inspect;
+    // fully-filled orders are deleted from storage and return zero-struct.
     const txHash = await client.trade.placeOrderSimple({
       marketId,
       outcomeId: 0n, // YES
       side: 1, // SELL
       price: '0.55',
-      quantity: '50',
+      quantity: '25',
       expiry: '24h',
     });
 
@@ -102,11 +105,13 @@ describe.skipIf(!hasTestAccount())('Trading lifecycle', () => {
     await waitForTx(client, txHash);
     lastTxHash = txHash;
 
-    // Verify orders are filled
+    // Verify orders are filled. Order struct has `qty` (remaining) and
+    // `originalQty`; filled = originalQty - qty.
     const buyOrder: any = await client.trade.getOrder(buyOrderId);
-    expect(BigInt(buyOrder.filled)).toBeGreaterThan(0n);
+    const filled = BigInt(buyOrder.originalQty) - BigInt(buyOrder.qty);
+    expect(filled).toBeGreaterThan(0n);
 
-    console.log(`  Orders matched: buyOrder filled=${buyOrder.filled}`);
+    console.log(`  Orders matched: buyOrder filled=${filled}`);
   });
 
   // ---- Market Order ----
@@ -183,7 +188,8 @@ describe.skipIf(!hasTestAccount())('Trading lifecycle', () => {
 
     const trade = response.trades[0];
     expect(trade.outcome).toBeDefined();
-    expect(trade.side).toBeDefined();
+    // Subgraph Trade entity uses `tradeType` (NORMAL/MINT/MERGE), not `side`.
+    expect((trade as any).tradeType).toBeDefined();
     expect(trade.tick).toBeDefined();
     expect(trade.amount).toBeDefined();
 
