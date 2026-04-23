@@ -101,6 +101,33 @@ export function parseEventFromReceipt(
   throw new Error(`Event "${eventName}" not found in transaction ${receipt.transactionHash}`);
 }
 
+/**
+ * Parse every occurrence of a given event name from a receipt.
+ * Returns args in log-order; empty array if none match.
+ */
+export function parseAllEventsFromReceipt(
+  receipt: TransactionReceipt,
+  abi: Abi,
+  eventName: string,
+): Array<Record<string, unknown>> {
+  const results: Array<Record<string, unknown>> = [];
+  for (const log of receipt.logs) {
+    try {
+      const decoded = decodeEventLog({
+        abi,
+        data: log.data,
+        topics: log.topics,
+      });
+      if (decoded.eventName === eventName) {
+        results.push(decoded.args as unknown as Record<string, unknown>);
+      }
+    } catch {
+      // Log doesn't match this ABI — skip
+    }
+  }
+  return results;
+}
+
 // ---------------------------------------------------------------------------
 // Token helpers
 // ---------------------------------------------------------------------------
