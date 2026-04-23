@@ -14,6 +14,22 @@ import type { Address } from 'viem';
 import { formatAmount, isValidTickSize, type MarketQuestion } from '../utils/conversions';
 import { getTokenDecimals } from '../utils/decimals';
 
+// Inline fragment for ERC-1155 isApprovedForAll. Not in the bundled CTF ABI
+// because it was generated from a subset of methods; this avoids having to
+// regenerate the full ABI for a single standard read.
+const CTF_IS_APPROVED_FOR_ALL_ABI = [
+  {
+    name: 'isApprovedForAll',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'account', type: 'address' },
+      { name: 'operator', type: 'address' },
+    ],
+    outputs: [{ name: '', type: 'bool' }],
+  },
+] as const;
+
 export class MarketModule extends BaseModule {
   /**
    * Format market question into UMA-compliant ancillary data
@@ -572,13 +588,14 @@ export class MarketModule extends BaseModule {
   }) {
     const wallet = this.walletClient;
     const account = await this.getSignerAccount();
+    const accountAddress = await this.getSignerAddress();
 
     // Check CTF approval for Diamond
     const isApproved = await this.publicClient.readContract({
       address: this.config.conditionalTokensAddress,
-      abi: ConditionalTokensABI,
+      abi: CTF_IS_APPROVED_FOR_ALL_ABI,
       functionName: 'isApprovedForAll',
-      args: [account, this.config.diamondAddress],
+      args: [accountAddress, this.config.diamondAddress],
     });
 
     if (!isApproved) {

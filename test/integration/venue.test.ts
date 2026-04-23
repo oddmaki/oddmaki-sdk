@@ -83,4 +83,71 @@ describe.skipIf(!hasTestAccount())('Venue lifecycle', () => {
     const canCreate = await client.venue.canCreateMarket(account.address, venueId);
     expect(canCreate).toBe(true);
   });
+
+  it('should update fees via updateFees', async () => {
+    const tx = await client.venue.updateFees({
+      venueId,
+      venueFeeBps: 75,
+      creatorFeeBps: 40,
+    });
+    await waitForTx(client, tx);
+
+    const venue: any = await client.venue.getVenue(venueId);
+    expect(BigInt(venue.venueFeeBps)).toBe(75n);
+    expect(BigInt(venue.creatorFeeBps)).toBe(40n);
+  });
+
+  it('should update oracle params via updateOracleParams', async () => {
+    const newMinBond = parseUnits('2', 6);
+    const tx = await client.venue.updateOracleParams({
+      venueId,
+      umaRewardAmount: 0n,
+      umaMinBond: newMinBond,
+    });
+    await waitForTx(client, tx);
+
+    const venue: any = await client.venue.getVenue(venueId);
+    expect(BigInt(venue.umaMinBond)).toBe(newMinBond);
+  });
+
+  it('should update name, metadata, and fee recipient via updateVenue', async () => {
+    const account = getTestAccount();
+    const newName = `Venue Test Updated ${Date.now()}`;
+    const tx = await client.venue.updateVenue({
+      venueId,
+      name: newName,
+      metadata: 'updated-metadata',
+      tradingAccessControl: ZERO_ADDRESS,
+      creationAccessControl: ZERO_ADDRESS,
+      feeRecipient: account.address,
+    });
+    await waitForTx(client, tx);
+
+    const venue: any = await client.venue.getVenue(venueId);
+    expect(venue.name).toBe(newName);
+    expect(venue.metadata).toBe('updated-metadata');
+  });
+
+  it('should pause and unpause the venue via setPaused', async () => {
+    const pauseTx = await client.venue.setPaused(venueId, true);
+    await waitForTx(client, pauseTx);
+
+    const account = getTestAccount();
+    // Paused venues block trading and market creation.
+    expect(await client.venue.canTrade(account.address, venueId)).toBe(false);
+    expect(await client.venue.canCreateMarket(account.address, venueId)).toBe(false);
+
+    const unpauseTx = await client.venue.setPaused(venueId, false);
+    await waitForTx(client, unpauseTx);
+
+    expect(await client.venue.canTrade(account.address, venueId)).toBe(true);
+    expect(await client.venue.canCreateMarket(account.address, venueId)).toBe(true);
+  });
+
+  it('should read protocol fee bps via getProtocolFeeBps', async () => {
+    const bps = await client.venue.getProtocolFeeBps();
+    // Protocol fee has a max of 200 bps per validator; anything beyond that is a misconfig.
+    expect(bps).toBeGreaterThanOrEqual(0n);
+    expect(bps).toBeLessThanOrEqual(200n);
+  });
 });
