@@ -29,8 +29,8 @@
     "web3",
     "prediction-market"
   ],
-  "author": "OddMaki",
-  "license": "Apache-2.0",
+  "author": "Predictable Reality, Inc.",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/oddmaki/oddmaki-sdk.git"

@@ -103,6 +103,12 @@ pnpm run lint
 - [oddmaki-subgraph](https://github.com/oddmaki/oddmaki-subgraph) — Subgraph
 - [oddmaki-venue-starter](https://github.com/oddmaki/oddmaki-venue-starter) — Venue starter template
 
+## Links
+
+- **Protocol** — [oddmaki.com](https://oddmaki.com)
+- **Company** — [predictablereality.com](https://predictablereality.com)
+- **Contact** — team@oddmaki.com
+
 ## License
 
-[MIT](./LICENSE)
+[MIT](./LICENSE) — Copyright (c) 2025-2026 Predictable Reality, Inc.
