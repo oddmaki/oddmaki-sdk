@@ -30,6 +30,9 @@
     "prediction-market"
   ],
   "author": "Predictable Reality, Inc.",
+  "contributors": [
+    "Carlos Revelo (https://github.com/crevelop)"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",

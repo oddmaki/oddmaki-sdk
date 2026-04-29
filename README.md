@@ -106,7 +106,7 @@ pnpm run lint
 ## Links
 
 - **Protocol** — [oddmaki.com](https://oddmaki.com)
-- **Company** — [predictablereality.com](https://predictablereality.com)
+- **Maintainer** — [predictablereality.com](https://predictablereality.com)
 - **Contact** — team@oddmaki.com
 
 ## License
