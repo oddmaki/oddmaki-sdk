@@ -19,6 +19,17 @@
  *   1. Reads deployment JSON from oddmaki-core/deployments/<chain>/<version>.json
  *   2. Updates src/config.ts with new contract addresses (preserves subgraph URLs)
  *   3. Extracts ABIs from oddmaki-core Forge artifacts (out/) into src/contracts/abis/
+ *
+ * ABI sync targets are auto-discovered from deployment.contracts plus a fixed
+ * list of per-venue contracts (PER_VENUE_ABIS). Diamond infrastructure facets
+ * (Cut/Loupe/Ownership/ERC1155Receiver) and the OddMaki proxy itself are
+ * skipped via SKIP_DEPLOYED. Names that don't match the deployment key are
+ * mapped through DEPLOYED_NAME_TO_ABI; unusual artifact paths through ABI_OVERRIDES.
+ *
+ * New ABI files are written but NOT auto-imported in src/contracts/index.ts
+ * — add imports/exports manually if you want to expose them. Orphan files
+ * (existing on disk but not in the target set) are flagged with a warning,
+ * never deleted.
  */
 
 const fs = require('fs');
@@ -39,7 +50,37 @@ const CHAIN_MAP = {
 const ABI_OVERRIDES = {
   ConditionalTokens: 'IConditionalTokens.sol/IConditionalTokens.json',
   ERC20: 'MockERC20.sol/MockERC20.json',
+  UmaOracle: 'OptimisticOracleV3Interface.sol/OptimisticOracleV3Interface.json',
 };
+
+// ---------------------------------------------------------------------------
+// Deployment contract names the SDK does NOT need ABIs for.
+// (Diamond infrastructure / hooks; not part of the public SDK surface.)
+// ---------------------------------------------------------------------------
+const SKIP_DEPLOYED = new Set([
+  'OddMaki',              // Diamond proxy address; ABI is the union of facets
+  'DiamondCutFacet',      // Diamond infra, deploy-time only
+  'DiamondLoupeFacet',    // Diamond introspection, not exposed by SDK
+  'OwnershipFacet',       // Diamond ownership, not exposed by SDK
+  'ERC1155ReceiverFacet', // Hook only, no callable surface
+]);
+
+// ---------------------------------------------------------------------------
+// Map deployment contract name → SDK ABI filename when they differ.
+// ---------------------------------------------------------------------------
+const DEPLOYED_NAME_TO_ABI = {
+  USDC: 'ERC20',
+};
+
+// ---------------------------------------------------------------------------
+// Per-venue contracts deployed by AccessControlFacet (not in protocol-level
+// deployment JSON, but the SDK needs ABIs to interact with deployed instances).
+// ---------------------------------------------------------------------------
+const PER_VENUE_ABIS = [
+  'WhitelistAccessControl',
+  'NFTGatedAccessControl',
+  'TokenGatedAccessControl',
+];
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -161,45 +202,112 @@ function updateConfig(sdkRoot, chainName, deployment) {
   console.log(`  ✓ config.ts updated (${viemName}, diamond=${contracts.OddMaki})`);
 }
 
-function syncAbis(sdkRoot, coreRoot) {
+/** Resolve a Forge artifact path for a given SDK ABI filename. */
+function resolveArtifactPath(outDir, name) {
+  const candidates = [];
+  if (ABI_OVERRIDES[name]) {
+    candidates.push(path.join(outDir, ABI_OVERRIDES[name]));
+  }
+  candidates.push(path.join(outDir, `${name}.sol`, `${name}.json`));
+  candidates.push(path.join(outDir, `I${name}.sol`, `I${name}.json`));
+
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return p;
+  }
+  return null;
+}
+
+/**
+ * Build the set of ABI filenames the SDK should sync.
+ *
+ * Sources:
+ *   1. deployment.contracts (auto-discovers everything deployed at protocol level)
+ *   2. PER_VENUE_ABIS (contracts deployed per-venue, not in protocol deployment)
+ *
+ * Filtered by SKIP_DEPLOYED, then mapped via DEPLOYED_NAME_TO_ABI.
+ */
+function buildTargetSet(deployment) {
+  const targets = new Set();
+
+  for (const depName of Object.keys(deployment.contracts || {})) {
+    if (SKIP_DEPLOYED.has(depName)) continue;
+    const abiName = DEPLOYED_NAME_TO_ABI[depName] || depName;
+    targets.add(abiName);
+  }
+
+  for (const name of PER_VENUE_ABIS) {
+    targets.add(name);
+  }
+
+  return targets;
+}
+
+function syncAbis(sdkRoot, coreRoot, deployment) {
   const abisDir = path.join(sdkRoot, 'src', 'contracts', 'abis');
   const outDir = path.join(coreRoot, 'out');
 
-  const files = fs.readdirSync(abisDir).filter((f) => f.endsWith('.json'));
+  const targets = buildTargetSet(deployment);
+  const sortedTargets = [...targets].sort();
+
   let synced = 0;
+  let added = 0;
+  const newFiles = [];
+  const missing = [];
 
-  for (const file of files) {
-    const name = path.basename(file, '.json');
+  for (const name of sortedTargets) {
+    const abiPath = path.join(abisDir, `${name}.json`);
+    const isNew = !fs.existsSync(abiPath);
 
-    // Resolve Forge artifact path
-    let artifactPath;
-    if (ABI_OVERRIDES[name]) {
-      artifactPath = path.join(outDir, ABI_OVERRIDES[name]);
-    } else {
-      artifactPath = path.join(outDir, `${name}.sol`, `${name}.json`);
-    }
-
-    // Fallback: interface variant (I-prefix)
-    if (!fs.existsSync(artifactPath)) {
-      artifactPath = path.join(outDir, `I${name}.sol`, `I${name}.json`);
-    }
-
-    if (!fs.existsSync(artifactPath)) {
-      console.warn(`  ⚠ No Forge artifact for ${name}, skipping`);
+    const artifactPath = resolveArtifactPath(outDir, name);
+    if (!artifactPath) {
+      missing.push(name);
       continue;
     }
 
     const artifact = JSON.parse(fs.readFileSync(artifactPath, 'utf8'));
     if (!Array.isArray(artifact.abi)) {
-      console.warn(`  ⚠ No ABI array in artifact for ${name}, skipping`);
+      missing.push(name);
       continue;
     }
 
-    fs.writeFileSync(path.join(abisDir, file), JSON.stringify(artifact.abi, null, 2) + '\n');
+    fs.writeFileSync(abiPath, JSON.stringify(artifact.abi, null, 2) + '\n');
     synced++;
+    if (isNew) {
+      added++;
+      newFiles.push(name);
+    }
   }
 
-  console.log(`  ✓ ${synced}/${files.length} ABIs synced`);
+  // Detect orphan files: present on disk but not in target set.
+  // Don't delete — just warn; an orphan may be a deprecated contract still
+  // imported somewhere, so removal must be a manual decision.
+  const existingNames = fs
+    .readdirSync(abisDir)
+    .filter((f) => f.endsWith('.json'))
+    .map((f) => path.basename(f, '.json'));
+  const orphans = existingNames.filter((n) => !targets.has(n));
+
+  console.log(
+    `  ✓ ${synced}/${sortedTargets.length} ABIs synced` +
+      (added > 0 ? ` (${added} new: ${newFiles.join(', ')})` : '')
+  );
+  if (added > 0) {
+    console.log(
+      `  ℹ New ABIs were written to ${path.relative(sdkRoot, abisDir)}/ but are NOT auto-imported.`
+    );
+    console.log(
+      `    Add imports/exports in src/contracts/index.ts if you want to expose them.`
+    );
+  }
+  if (missing.length > 0) {
+    console.warn(`  ⚠ No Forge artifact found for: ${missing.join(', ')}`);
+  }
+  if (orphans.length > 0) {
+    console.warn(
+      `  ⚠ Orphan ABI files (not in deployment + per-venue extras): ${orphans.join(', ')}`
+    );
+    console.warn(`    Review and remove if obsolete.`);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -235,7 +343,7 @@ function main() {
   console.log(`Syncing ${opts.chain} v${deployment.version || opts.version} → SDK`);
 
   updateConfig(sdkRoot, opts.chain, deployment);
-  syncAbis(sdkRoot, coreRoot);
+  syncAbis(sdkRoot, coreRoot, deployment);
 
   console.log('Done.');
 }
