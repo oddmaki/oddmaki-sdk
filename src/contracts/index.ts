@@ -23,6 +23,7 @@ import WhitelistAccessControlABI from './abis/WhitelistAccessControl.json';
 // External contract ABIs
 import ConditionalTokensABI from './abis/ConditionalTokens.json';
 import ERC20ABI from './abis/ERC20.json';
+import UmaOracleABI from './abis/UmaOracle.json';
 
 export {
   // Diamond facets
@@ -48,4 +49,5 @@ export {
   // External
   ConditionalTokensABI,
   ERC20ABI,
+  UmaOracleABI,
 };

@@ -4,20 +4,10 @@ import {
   MarketsFacetABI,
   ProtocolFacetABI,
   ConditionalTokensABI,
+  UmaOracleABI,
 } from '../contracts';
 import { erc20Abi } from 'viem';
 import type { Address } from 'viem';
-
-/** Minimal ABI for UMA Optimistic Oracle V3 getMinimumBond */
-const optimisticOracleV3Abi = [
-  {
-    inputs: [{ name: 'currency', type: 'address' }],
-    name: 'getMinimumBond',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-] as const;
 
 /**
  * UMA Module - Handles oracle assertion and resolution operations
@@ -164,7 +154,7 @@ export class UmaModule extends BaseModule {
 
     const minimumBond = (await this.publicClient.readContract({
       address: umaOracle,
-      abi: optimisticOracleV3Abi,
+      abi: UmaOracleABI,
       functionName: 'getMinimumBond',
       args: [currency],
     })) as bigint;
