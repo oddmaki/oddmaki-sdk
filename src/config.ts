@@ -1,5 +1,5 @@
 import type { Address } from 'viem';
-import { baseSepolia } from 'viem/chains';
+import { baseSepolia, base } from 'viem/chains';
 
 export const CONTRACT_ADDRESSES = {
   [baseSepolia.id]: {
@@ -8,6 +8,12 @@ export const CONTRACT_ADDRESSES = {
     usdc: '0x1d3caa0156e8e573814b78766ba7958d7e11488b' as Address,
     subgraph: 'https://api.studio.thegraph.com/query/1716020/oddmaki/version/latest',
   },
+  [base.id]: {
+    diamond: '0x025d086a62d93e24f3cb3f161612ca8e9530127d' as Address,
+    conditionalTokens: '0x3e2ae408ca03f27849edff32d107c7b8ea5c87b4' as Address,
+    usdc: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913' as Address,
+    subgraph: 'https://api.studio.thegraph.com/query/1716020/oddmaki-base/version/latest',
+  },
 } as const;
 
-export const DEFAULT_CHAIN = baseSepolia;
+export const DEFAULT_CHAIN = base;
