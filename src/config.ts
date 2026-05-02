@@ -6,7 +6,7 @@ export const CONTRACT_ADDRESSES = {
     diamond: '0x31a4126aec35b36d46dd371eb0f0d5b71e1c2292' as Address,
     conditionalTokens: '0x7364747372Ac4a175B5326f5B2C9CB1C271d32e8' as Address,
     usdc: '0x1d3caa0156e8e573814b78766ba7958d7e11488b' as Address,
-    subgraph: 'https://api.studio.thegraph.com/query/1716020/oddmaki/version/latest',
+    subgraph: 'https://api.studio.thegraph.com/query/1716020/oddmaki-base-sepolia/version/latest',
   },
   [base.id]: {
     diamond: '0x025d086a62d93e24f3cb3f161612ca8e9530127d' as Address,
@@ -15,5 +15,19 @@ export const CONTRACT_ADDRESSES = {
     subgraph: 'https://api.studio.thegraph.com/query/1716020/oddmaki-base/version/latest',
   },
 } as const;
+
+export const SUBGRAPH_IDS = {
+  [base.id]: 'QmPaESDtwZvtYPx8vvAU3nHE7kZBZ121XQCiPxM4bQauGh',
+} as const;
+
+export function buildSubgraphGatewayUrl(
+  chainId: number,
+  apiKey: string,
+): string | undefined {
+  const id = SUBGRAPH_IDS[chainId as keyof typeof SUBGRAPH_IDS];
+  return id
+    ? `https://gateway.thegraph.com/api/${apiKey}/subgraphs/id/${id}`
+    : undefined;
+}
 
 export const DEFAULT_CHAIN = base;

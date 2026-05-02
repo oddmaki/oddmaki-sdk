@@ -41,6 +41,7 @@ export function createOddMakiClient(params: {
   account?: Account;
   transport?: any; // Viem transport
   chain?: any; // Viem chain
+  subgraphEndpoint?: string;
 }): OddMakiClient {
   let chain = params.chain;
   let transport = params.transport;
@@ -87,7 +88,7 @@ export function createOddMakiClient(params: {
     transport,
     diamondAddress: addresses.diamond,
     conditionalTokensAddress: addresses.conditionalTokens,
-    subgraphEndpoint: addresses.subgraph,
+    subgraphEndpoint: params.subgraphEndpoint ?? addresses.subgraph,
     publicClient,
     walletClient,
   };
