@@ -16,4 +16,18 @@ export const CONTRACT_ADDRESSES = {
   },
 } as const;
 
+export const SUBGRAPH_IDS = {
+  [base.id]: 'QmPaESDtwZvtYPx8vvAU3nHE7kZBZ121XQCiPxM4bQauGh',
+} as const;
+
+export function buildSubgraphGatewayUrl(
+  chainId: number,
+  apiKey: string,
+): string | undefined {
+  const id = SUBGRAPH_IDS[chainId as keyof typeof SUBGRAPH_IDS];
+  return id
+    ? `https://gateway.thegraph.com/api/${apiKey}/subgraphs/id/${id}`
+    : undefined;
+}
+
 export const DEFAULT_CHAIN = base;
