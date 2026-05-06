@@ -53,6 +53,7 @@ describe('PublicModule', () => {
     expect(mockRequest).toHaveBeenCalledWith(expect.anything(), {
       venueId: '1',
       search: '',
+      statuses: ['Draft', 'Active', 'Resolved', 'Invalid'],
       first: 100,
       skip: 0,
     });
@@ -68,6 +69,22 @@ describe('PublicModule', () => {
     expect(mockRequest).toHaveBeenCalledWith(expect.anything(), {
       venueId: '1',
       search: 'BTC',
+      statuses: ['Draft', 'Active', 'Resolved', 'Invalid'],
+      first: 100,
+      skip: 0,
+    });
+  });
+
+  it('should pass statuses filter to getMarkets', async () => {
+    const mockData = { markets: [] };
+    mockRequest.mockResolvedValueOnce(mockData);
+
+    await module.getMarkets({ venueId: 1n, statuses: ['Active'] });
+
+    expect(mockRequest).toHaveBeenCalledWith(expect.anything(), {
+      venueId: '1',
+      search: '',
+      statuses: ['Active'],
       first: 100,
       skip: 0,
     });
