@@ -45,11 +45,16 @@ export const GET_MARKETS = gql`
   query GetMarkets(
     $venueId: BigInt
     $search: String = ""
+    $statuses: [MarketStatus!] = [Draft, Active, Resolved, Invalid]
     $first: Int = 100
     $skip: Int = 0
   ) {
     markets(
-      where: { venue_: { venueId: $venueId }, question_contains_nocase: $search }
+      where: {
+        venue_: { venueId: $venueId }
+        question_contains_nocase: $search
+        status_in: $statuses
+      }
       first: $first
       skip: $skip
       orderBy: createdAt
@@ -83,11 +88,16 @@ export const GET_MARKETS_WITH_PRICING = gql`
   query GetMarketsWithPricing(
     $venueId: BigInt
     $search: String = ""
+    $statuses: [MarketStatus!] = [Draft, Active, Resolved, Invalid]
     $first: Int = 100
     $skip: Int = 0
   ) {
     markets(
-      where: { venue_: { venueId: $venueId }, question_contains_nocase: $search }
+      where: {
+        venue_: { venueId: $venueId }
+        question_contains_nocase: $search
+        status_in: $statuses
+      }
       first: $first
       skip: $skip
       orderBy: createdAt

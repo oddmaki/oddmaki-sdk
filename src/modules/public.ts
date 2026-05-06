@@ -1,5 +1,13 @@
 import { BaseModule } from './base';
 import { calculateChancePercent } from '../utils/conversions';
+
+/**
+ * Market lifecycle statuses indexed by the subgraph. Mirrors the on-chain
+ * market state machine.
+ */
+export type MarketStatus = 'Draft' | 'Active' | 'Resolved' | 'Invalid';
+
+const ALL_MARKET_STATUSES: MarketStatus[] = ['Draft', 'Active', 'Resolved', 'Invalid'];
 import {
   GET_VENUES,
   GET_MARKETS,
@@ -54,12 +62,14 @@ export class PublicModule extends BaseModule {
   async getMarkets(params: {
     venueId?: bigint;
     search?: string;
+    statuses?: MarketStatus[];
     first?: number;
     skip?: number;
   }) {
     return this.subgraph.request(GET_MARKETS, {
       venueId: params.venueId?.toString(),
       search: params.search ?? '',
+      statuses: params.statuses ?? ALL_MARKET_STATUSES,
       first: params.first || 100,
       skip: params.skip || 0,
     });
@@ -70,16 +80,20 @@ export class PublicModule extends BaseModule {
    *
    * @param params.search Optional case-insensitive substring match against the
    *   market `question` field. Empty string matches all markets.
+   * @param params.statuses Optional list of market statuses to include. Omit
+   *   to include all statuses (Draft, Active, Resolved, Invalid).
    */
   async getMarketsWithPricing(params: {
     venueId?: bigint;
     search?: string;
+    statuses?: MarketStatus[];
     first?: number;
     skip?: number;
   }) {
     return this.subgraph.request(GET_MARKETS_WITH_PRICING, {
       venueId: params.venueId?.toString(),
       search: params.search ?? '',
+      statuses: params.statuses ?? ALL_MARKET_STATUSES,
       first: params.first || 100,
       skip: params.skip || 0,
     });
