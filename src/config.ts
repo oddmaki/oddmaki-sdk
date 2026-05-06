@@ -17,7 +17,8 @@ export const CONTRACT_ADDRESSES = {
 } as const;
 
 export const SUBGRAPH_IDS = {
-  [base.id]: 'QmPaESDtwZvtYPx8vvAU3nHE7kZBZ121XQCiPxM4bQauGh',
+  [base.id]: 'CxoYVjELrNCMLopAmVshnfVAie7yH6QZyCSKD3r41XSQ',
+  [baseSepolia.id]: 'DCnd3ozSyvYxRg7kmZYiDWGBiJCe6QHwu8M93jMN1Q3b',
 } as const;
 
 export function buildSubgraphGatewayUrl(
