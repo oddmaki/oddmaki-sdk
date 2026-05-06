@@ -53,11 +53,13 @@ export class PublicModule extends BaseModule {
    */
   async getMarkets(params: {
     venueId?: bigint;
+    search?: string;
     first?: number;
     skip?: number;
   }) {
     return this.subgraph.request(GET_MARKETS, {
       venueId: params.venueId?.toString(),
+      search: params.search ?? '',
       first: params.first || 100,
       skip: params.skip || 0,
     });
@@ -65,14 +67,19 @@ export class PublicModule extends BaseModule {
 
   /**
    * Get markets with pricing data (last trade prices + statistics)
+   *
+   * @param params.search Optional case-insensitive substring match against the
+   *   market `question` field. Empty string matches all markets.
    */
   async getMarketsWithPricing(params: {
     venueId?: bigint;
+    search?: string;
     first?: number;
     skip?: number;
   }) {
     return this.subgraph.request(GET_MARKETS_WITH_PRICING, {
       venueId: params.venueId?.toString(),
+      search: params.search ?? '',
       first: params.first || 100,
       skip: params.skip || 0,
     });
