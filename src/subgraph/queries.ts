@@ -42,9 +42,14 @@ export const GET_VENUES = gql`
 `;
 
 export const GET_MARKETS = gql`
-  query GetMarkets($venueId: BigInt, $first: Int = 100, $skip: Int = 0) {
+  query GetMarkets(
+    $venueId: BigInt
+    $search: String = ""
+    $first: Int = 100
+    $skip: Int = 0
+  ) {
     markets(
-      where: { venue_: { venueId: $venueId } }
+      where: { venue_: { venueId: $venueId }, question_contains_nocase: $search }
       first: $first
       skip: $skip
       orderBy: createdAt
@@ -77,11 +82,12 @@ export const GET_MARKETS = gql`
 export const GET_MARKETS_WITH_PRICING = gql`
   query GetMarketsWithPricing(
     $venueId: BigInt
+    $search: String = ""
     $first: Int = 100
     $skip: Int = 0
   ) {
     markets(
-      where: { venue_: { venueId: $venueId } }
+      where: { venue_: { venueId: $venueId }, question_contains_nocase: $search }
       first: $first
       skip: $skip
       orderBy: createdAt

@@ -52,10 +52,25 @@ describe('PublicModule', () => {
 
     expect(mockRequest).toHaveBeenCalledWith(expect.anything(), {
       venueId: '1',
+      search: '',
       first: 100,
       skip: 0,
     });
     expect(result).toEqual(mockData);
+  });
+
+  it('should pass search filter to getMarkets', async () => {
+    const mockData = { markets: [] };
+    mockRequest.mockResolvedValueOnce(mockData);
+
+    await module.getMarkets({ venueId: 1n, search: 'BTC' });
+
+    expect(mockRequest).toHaveBeenCalledWith(expect.anything(), {
+      venueId: '1',
+      search: 'BTC',
+      first: 100,
+      skip: 0,
+    });
   });
 
   it('should fetch a single market', async () => {
