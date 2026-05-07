@@ -17,7 +17,11 @@
  *
  * Steps performed:
  *   1. Reads deployment JSON from oddmaki-core/deployments/<chain>/<version>.json
- *   2. Updates src/config.ts with new contract addresses (preserves subgraph URLs)
+ *   2. Surgically updates src/config.ts: rewrites only the CONTRACT_ADDRESSES
+ *      literal and DEFAULT_CHAIN, ensures the chain is imported from viem/chains,
+ *      and preserves subgraph URLs and any other code in the file (helpers,
+ *      types, additional exports). Anything outside the two managed exports is
+ *      left untouched.
  *   3. Extracts ABIs from oddmaki-core Forge artifacts (out/) into src/contracts/abis/
  *
  * ABI sync targets are auto-discovered from deployment.contracts plus a fixed
@@ -140,32 +144,64 @@ function parseExistingConfig(configPath) {
   return entries;
 }
 
-/** Generate config.ts content from entries map. */
-function generateConfig(entries) {
-  const defaultChain = entries._defaultChain;
+/** Render the CONTRACT_ADDRESSES literal body (no `export const` / `as const`). */
+function renderContractAddressesBlock(entries) {
   const chainNames = Object.keys(entries).filter((k) => k !== '_defaultChain');
 
-  const imports = chainNames.join(', ');
-
-  let out = '';
-  out += `import type { Address } from 'viem';\n`;
-  out += `import { ${imports} } from 'viem/chains';\n`;
-  out += `\n`;
-  out += `export const CONTRACT_ADDRESSES = {\n`;
-
+  let body = '{\n';
   for (const name of chainNames) {
     const e = entries[name];
-    out += `  [${name}.id]: {\n`;
-    out += `    diamond: '${e.diamond}' as Address,\n`;
-    out += `    conditionalTokens: '${e.conditionalTokens}' as Address,\n`;
-    out += `    usdc: '${e.usdc}' as Address,\n`;
-    out += `    subgraph: '${e.subgraph}',\n`;
-    out += `  },\n`;
+    body += `  [${name}.id]: {\n`;
+    body += `    diamond: '${e.diamond}' as Address,\n`;
+    body += `    conditionalTokens: '${e.conditionalTokens}' as Address,\n`;
+    body += `    usdc: '${e.usdc}' as Address,\n`;
+    body += `    subgraph: '${e.subgraph}',\n`;
+    body += `  },\n`;
   }
+  body += '} as const';
+  return body;
+}
 
-  out += `} as const;\n`;
-  out += `\n`;
-  out += `export const DEFAULT_CHAIN = ${defaultChain || chainNames[0]};\n`;
+/**
+ * Surgically update config.ts in place:
+ *   - Ensure all required chains are present in the `viem/chains` import
+ *   - Replace the CONTRACT_ADDRESSES literal with the regenerated entries
+ *   - Update DEFAULT_CHAIN if entries._defaultChain says so
+ *
+ * Everything else in the file (helpers, types, extra exports) is preserved.
+ */
+function rewriteConfig(src, entries) {
+  const chainNames = Object.keys(entries).filter((k) => k !== '_defaultChain');
+  let out = src;
+
+  // 1. Ensure every chain is in the viem/chains import.
+  const importRe = /import\s*\{\s*([^}]*)\s*\}\s*from\s*'viem\/chains';/;
+  const match = out.match(importRe);
+  if (!match) {
+    throw new Error("Could not locate `import { ... } from 'viem/chains';` in config.ts");
+  }
+  const present = new Set(match[1].split(',').map((s) => s.trim()).filter(Boolean));
+  for (const name of chainNames) present.add(name);
+  const merged = [...present].join(', ');
+  out = out.replace(importRe, `import { ${merged} } from 'viem/chains';`);
+
+  // 2. Replace CONTRACT_ADDRESSES body. Match the literal balanced `{ ... } as const`.
+  const addrRe = /(export const CONTRACT_ADDRESSES\s*=\s*)\{[\s\S]*?\}\s*as\s*const/;
+  if (!addrRe.test(out)) {
+    throw new Error('Could not locate `export const CONTRACT_ADDRESSES = { ... } as const` in config.ts');
+  }
+  out = out.replace(addrRe, `$1${renderContractAddressesBlock(entries)}`);
+
+  // 3. Update DEFAULT_CHAIN if specified.
+  if (entries._defaultChain) {
+    const dcRe = /export const DEFAULT_CHAIN\s*=\s*\w+;/;
+    if (dcRe.test(out)) {
+      out = out.replace(dcRe, `export const DEFAULT_CHAIN = ${entries._defaultChain};`);
+    } else {
+      // No DEFAULT_CHAIN found — append it (preserves "everything else stays" guarantee).
+      out += `\nexport const DEFAULT_CHAIN = ${entries._defaultChain};\n`;
+    }
+  }
 
   return out;
 }
@@ -178,6 +214,12 @@ function updateConfig(sdkRoot, chainName, deployment) {
   const configPath = path.join(sdkRoot, 'src', 'config.ts');
   const viemName = CHAIN_MAP[chainName];
 
+  if (!fs.existsSync(configPath)) {
+    console.error(`config.ts not found at ${configPath} — cannot sync.`);
+    process.exit(1);
+  }
+
+  const src = fs.readFileSync(configPath, 'utf8');
   const entries = parseExistingConfig(configPath);
   const existingSubgraph = entries[viemName]?.subgraph;
 
@@ -198,7 +240,7 @@ function updateConfig(sdkRoot, chainName, deployment) {
   // Preserve DEFAULT_CHAIN; default to current chain if unset
   if (!entries._defaultChain) entries._defaultChain = viemName;
 
-  fs.writeFileSync(configPath, generateConfig(entries));
+  fs.writeFileSync(configPath, rewriteConfig(src, entries));
   console.log(`  ✓ config.ts updated (${viemName}, diamond=${contracts.OddMaki})`);
 }
 
