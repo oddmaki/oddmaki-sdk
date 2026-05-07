@@ -333,6 +333,24 @@
   },
   {
     "type": "function",
+    "name": "updateVenueMarketCreationFee",
+    "inputs": [
+      {
+        "name": "venueId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "newFee",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "updateVenueOracleParams",
     "inputs": [
       {
@@ -428,6 +446,25 @@
       },
       {
         "name": "creatorFeeBps",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "VenueMarketCreationFeeUpdated",
+    "inputs": [
+      {
+        "name": "venueId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "newFee",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
@@ -537,11 +574,6 @@
   {
     "type": "error",
     "name": "InvalidFeeRecipient",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "InvalidMarketCreationFee",
     "inputs": []
   },
   {

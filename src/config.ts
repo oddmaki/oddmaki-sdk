@@ -16,19 +16,4 @@ export const CONTRACT_ADDRESSES = {
   },
 } as const;
 
-export const SUBGRAPH_IDS = {
-  [base.id]: 'CxoYVjELrNCMLopAmVshnfVAie7yH6QZyCSKD3r41XSQ',
-  [baseSepolia.id]: 'DCnd3ozSyvYxRg7kmZYiDWGBiJCe6QHwu8M93jMN1Q3b',
-} as const;
-
-export function buildSubgraphGatewayUrl(
-  chainId: number,
-  apiKey: string,
-): string | undefined {
-  const id = SUBGRAPH_IDS[chainId as keyof typeof SUBGRAPH_IDS];
-  return id
-    ? `https://gateway.thegraph.com/api/${apiKey}/subgraphs/id/${id}`
-    : undefined;
-}
-
 export const DEFAULT_CHAIN = base;
