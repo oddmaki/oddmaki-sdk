@@ -3,21 +3,24 @@ import { VenueFacetABI, ProtocolFacetABI } from '../contracts';
 
 export class VenueModule extends BaseModule {
   /**
-   * Create a new venue
+   * Create a new venue.
    *
-   * IMPORTANT: Fee and bond amounts must match your intended collateral token decimals!
-   * Most venues use USDC (6 decimals), so amounts should use parseUnits("amount", 6).
+   * IMPORTANT: Fee and bond amounts must match your intended collateral token decimals.
+   * Most venues use USDC (6 decimals), so amounts should use `parseUnits("amount", 6)`.
    *
-   * Example for USDC-based venue:
-   * - marketCreationFee: parseUnits("10", 6)  // 10 USDC
-   * - umaRewardAmount: parseUnits("5", 6)     // 5 USDC
-   * - umaMinBond: parseUnits("1", 6)          // 1 USDC
-   * - defaultTickSize: parseEther("0.01")     // 0.01 per tick (always 18 decimals)
+   * Example for a USDC-based venue:
+   * - marketCreationFee: 0n                    // free creation, or parseUnits("10", 6) for 10 USDC
+   * - umaRewardAmount: parseUnits("5", 6)      // 5 USDC
+   * - umaMinBond: parseUnits("1", 6)           // 1 USDC
+   * - defaultTickSize: parseEther("0.01")      // 0.01 per tick (always 18 decimals)
    *
-   * @param params.marketCreationFee - Upfront fee (min 5e6 for USDC, split 50/50 protocol/venue)
-   * @param params.umaRewardAmount - Default reward for UMA asserters (in collateral token units)
-   * @param params.umaMinBond - Minimum bond for UMA assertions (in collateral token units)
-   * @param params.defaultTickSize - Price increment per tick (always 1e18 scale, e.g., 0.01e18)
+   * @param params.marketCreationFee - Upfront fee in collateral units charged on `createMarket`.
+   *   Can be zero. When non-zero, split 50/50 between protocol and venue.
+   *   When zero, gate market creation via `creationAccessControl` to deter spam.
+   *   Mutable post-creation via `updateMarketCreationFee`.
+   * @param params.umaRewardAmount - Default reward for UMA asserters (in collateral token units).
+   * @param params.umaMinBond - Minimum bond for UMA assertions (in collateral token units).
+   * @param params.defaultTickSize - Price increment per tick (always 1e18 scale, e.g. 0.01e18).
    */
   async createVenue(params: {
     name: string;
@@ -138,6 +141,30 @@ export class VenueModule extends BaseModule {
         params.creationAccessControl,
         params.feeRecipient,
       ],
+      account,
+    });
+
+    return wallet.writeContract(request);
+  }
+
+  /**
+   * Update the upfront market creation fee for a venue. Operator-only.
+   *
+   * Affects only markets created after this call — existing markets keep their snapshot.
+   * Pass `0n` for free creation; if you do, gate `createMarket` via `creationAccessControl`
+   * to deter spam.
+   *
+   * @param params.newFee - New fee in collateral token units (e.g. `parseUnits("10", 6)` for 10 USDC).
+   */
+  async updateMarketCreationFee(params: { venueId: bigint; newFee: bigint }) {
+    const wallet = this.walletClient;
+    const account = await this.getSignerAccount();
+
+    const { request } = await this.publicClient.simulateContract({
+      address: this.config.diamondAddress,
+      abi: VenueFacetABI,
+      functionName: 'updateVenueMarketCreationFee',
+      args: [params.venueId, params.newFee],
       account,
     });
 
