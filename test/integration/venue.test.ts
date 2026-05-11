@@ -4,11 +4,11 @@ import {
   hasTestAccount,
   createTestClient,
   getTestAccount,
-  mintAndApproveUSDC,
   waitForTx,
   parseEventFromReceipt,
   USDC_ADDRESS,
 } from './helpers/setup';
+import { ensureUsdcFunded } from './helpers/fixtures';
 import { waitForSubgraphSync } from './helpers/subgraph-sync';
 import { VenueFacetABI } from '../../src/contracts';
 import type { OddMakiClient } from '../../src/client';
@@ -23,8 +23,8 @@ describe.skipIf(!hasTestAccount())('Venue lifecycle', () => {
   beforeAll(async () => {
     client = createTestClient();
 
-    // Mint USDC for market creation fees (venue creation itself is gas-only)
-    await mintAndApproveUSDC(client, parseUnits('100', 6));
+    // Wallet must hold USDC (https://faucet.circle.com); venue creation is gas-only.
+    await ensureUsdcFunded(client, parseUnits('20', 6));
 
     const account = getTestAccount();
     const txHash = await client.venue.createVenue({

@@ -4,8 +4,7 @@ import {
   createTestClient,
   getTestAccount,
   USDC_ADDRESS,
-  DIAMOND_ADDRESS,
-  mintAndApproveUSDC,
+  ensureBalanceAndApprove,
   waitForTx,
   parseEventFromReceipt,
 } from './setup';
@@ -30,11 +29,10 @@ export async function setup() {
   const client = createTestClient();
   const account = getTestAccount();
 
-  // Mint enough USDC for venue creation fee + market creation fee + trading
-  // Venue itself doesn't cost USDC, but the market creation fee is set on the venue.
-  // We mint generously to cover all test files.
-  const totalMint = parseUnits('10000', 6); // 10,000 USDC
-  await mintAndApproveUSDC(client, totalMint);
+  // Assert the wallet is funded with enough USDC to cover the shared setup
+  // (market creation fee = 5 USDC) plus headroom for child tests. Per-test
+  // suites assert their own minimums on top of this.
+  await ensureBalanceAndApprove(client, parseUnits('20', 6));
 
   // ---- Create venue ----
   const venueTxHash = await client.venue.createVenue({

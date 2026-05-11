@@ -27,7 +27,7 @@ describe.skipIf(!hasTestAccount())('Price-market trading', () => {
   beforeAll(async () => {
     client = createTestClient();
 
-    await ensureUsdcFunded(client, parseUnits('200', 6));
+    await ensureUsdcFunded(client, parseUnits('20', 6));
     await approveCTFForDiamond(client);
 
     venueId = await createVenueFixture(client, {

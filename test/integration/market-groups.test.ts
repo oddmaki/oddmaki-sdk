@@ -29,7 +29,7 @@ describe.skipIf(!hasTestAccount())('Market groups', () => {
   beforeAll(async () => {
     client = createTestClient();
 
-    await ensureUsdcFunded(client, parseUnits('500', 6));
+    await ensureUsdcFunded(client, parseUnits('20', 6));
     await approveCTFForDiamond(client);
 
     venueId = await createVenueFixture(client, {

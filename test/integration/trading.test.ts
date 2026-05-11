@@ -4,12 +4,12 @@ import {
   hasTestAccount,
   createTestClient,
   getTestAccount,
-  mintAndApproveUSDC,
   approveCTFForDiamond,
   waitForTx,
   parseEventFromReceipt,
   USDC_ADDRESS,
 } from './helpers/setup';
+import { ensureUsdcFunded } from './helpers/fixtures';
 import { waitForSubgraphSync } from './helpers/subgraph-sync';
 import { readSharedState } from './helpers/shared-state';
 import { LimitOrdersFacetABI } from '../../src/contracts';
@@ -27,8 +27,9 @@ describe.skipIf(!hasTestAccount())('Trading lifecycle', () => {
     const state = readSharedState();
     marketId = BigInt(state.marketId);
 
-    // Mint and approve enough USDC for all trading operations
-    await mintAndApproveUSDC(client, parseUnits('1000', 6));
+    // Require pre-funded USDC (from https://faucet.circle.com) and approve
+    // the Diamond. Splits 10 USDC + small limit orders fit comfortably here.
+    await ensureUsdcFunded(client, parseUnits('20', 6));
 
     // Approve CTF for Diamond (needed for merge + sell orders)
     await approveCTFForDiamond(client);
@@ -38,7 +39,7 @@ describe.skipIf(!hasTestAccount())('Trading lifecycle', () => {
 
   it('should split USDC into YES + NO tokens', async () => {
     const account = getTestAccount();
-    const amount = parseUnits('100', 6); // 100 USDC
+    const amount = parseUnits('10', 6); // 10 USDC
 
     const txHash = await client.trade.splitPosition(marketId, amount);
     await waitForTx(client, txHash);
@@ -49,7 +50,7 @@ describe.skipIf(!hasTestAccount())('Trading lifecycle', () => {
     expect(BigInt((balances as any).YES)).toBeGreaterThanOrEqual(amount);
     expect(BigInt((balances as any).NO)).toBeGreaterThanOrEqual(amount);
 
-    console.log(`  Split 100 USDC → YES=${(balances as any).YES}, NO=${(balances as any).NO}`);
+    console.log(`  Split 10 USDC → YES=${(balances as any).YES}, NO=${(balances as any).NO}`);
   });
 
   // ---- Limit Orders ----

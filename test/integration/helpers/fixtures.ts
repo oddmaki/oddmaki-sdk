@@ -3,7 +3,7 @@ import {
   createTestClient,
   getTestAccount,
   USDC_ADDRESS,
-  mintAndApproveUSDC,
+  ensureBalanceAndApprove,
   waitForTx,
   parseEventFromReceipt,
 } from './setup';
@@ -84,13 +84,13 @@ export async function createBinaryMarketFixture(
   return BigInt(args.marketId as bigint);
 }
 
-// Ensure the test account has the given amount of USDC minted and approved
-// to the Diamond. Idempotent to call — top-ups only.
+// Ensure the test account has at least `amount` of USDC and the Diamond is
+// approved for that much. Pre-fund the wallet from https://faucet.circle.com.
 export async function ensureUsdcFunded(
   client: OddMakiClient,
   amount: bigint,
 ): Promise<void> {
-  await mintAndApproveUSDC(client, amount);
+  await ensureBalanceAndApprove(client, amount);
 }
 
 // Re-export the underlying client builder for convenience.

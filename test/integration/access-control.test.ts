@@ -32,7 +32,7 @@ describe.skipIf(!hasTestAccount())('Access control', () => {
 
   beforeAll(async () => {
     client = createTestClient();
-    await ensureUsdcFunded(client, parseUnits('100', 6));
+    await ensureUsdcFunded(client, parseUnits('20', 6));
 
     // Random probe address (no key needed — we only pass it as an argument).
     outsider = privateKeyToAccount(generatePrivateKey()).address;
