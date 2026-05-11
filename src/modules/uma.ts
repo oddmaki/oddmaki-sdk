@@ -183,6 +183,118 @@ export class UmaModule extends BaseModule {
   }
 
   /**
+   * Get the UMA Optimistic Oracle V3 address for the active Diamond.
+   */
+  async getUmaOracleAddress(): Promise<Address> {
+    return (await this.publicClient.readContract({
+      address: this.config.diamondAddress,
+      abi: ProtocolFacetABI,
+      functionName: 'getUmaOracle',
+    })) as Address;
+  }
+
+  /**
+   * Dispute an active assertion directly on the UMA Optimistic Oracle V3.
+   *
+   * The dispute escalates the assertion to UMA's DVM, which arbitrates the
+   * outcome via tokenholder vote. The disputer must post a bond equal to the
+   * asserter's bond — the winner is reimbursed and receives a share of the
+   * loser's bond.
+   *
+   * @param params.assertionId - The active assertionId to dispute
+   * @param params.autoApprove - Approve the bond currency to the oracle if needed (default: true)
+   *
+   * @returns Transaction hash
+   */
+  async disputeAssertion(params: {
+    assertionId: `0x${string}`;
+    autoApprove?: boolean;
+  }) {
+    const wallet = this.walletClient;
+    const account = await this.getSignerAccount();
+    const accountAddress = await this.getSignerAddress();
+    const autoApprove = params.autoApprove ?? true;
+
+    const oracleAddress = await this.getUmaOracleAddress();
+
+    // Read assertion to get currency + bond amount required to dispute.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const assertion: any = await this.publicClient.readContract({
+      address: oracleAddress,
+      abi: UmaOracleABI,
+      functionName: 'getAssertion',
+      args: [params.assertionId],
+    });
+
+    const currency = assertion.currency as Address;
+    const bondAmount = BigInt(assertion.bond);
+
+    if (assertion.disputer !== '0x0000000000000000000000000000000000000000') {
+      throw new Error('Assertion has already been disputed');
+    }
+
+    if (assertion.settled) {
+      throw new Error('Assertion is already settled');
+    }
+
+    const currentTime = Math.floor(Date.now() / 1000);
+    if (currentTime >= Number(assertion.expirationTime)) {
+      throw new Error('Liveness period has expired — assertion can no longer be disputed');
+    }
+
+    // Approve oracle to pull bond from disputer if needed.
+    const currentAllowance = (await this.publicClient.readContract({
+      address: currency,
+      abi: erc20Abi,
+      functionName: 'allowance',
+      args: [accountAddress, oracleAddress],
+    })) as bigint;
+
+    if (currentAllowance < bondAmount && autoApprove) {
+      const approveHash = await wallet.writeContract({
+        address: currency,
+        abi: erc20Abi,
+        functionName: 'approve',
+        args: [oracleAddress, bondAmount],
+        account,
+        chain: this.config.chain,
+      });
+
+      await this.publicClient.waitForTransactionReceipt({
+        hash: approveHash,
+        confirmations: 2,
+      });
+    } else if (currentAllowance < bondAmount) {
+      throw new Error(
+        `Insufficient bond currency allowance for oracle. Required: ${bondAmount.toString()}, Current: ${currentAllowance.toString()}.`
+      );
+    }
+
+    const balance = (await this.publicClient.readContract({
+      address: currency,
+      abi: erc20Abi,
+      functionName: 'balanceOf',
+      args: [accountAddress],
+    })) as bigint;
+
+    if (balance < bondAmount) {
+      throw new Error(
+        `Insufficient bond currency balance. Required: ${bondAmount.toString()}, Have: ${balance.toString()}`
+      );
+    }
+
+    const { request } = await this.publicClient.simulateContract({
+      address: oracleAddress,
+      abi: UmaOracleABI,
+      functionName: 'disputeAssertion',
+      args: [params.assertionId, accountAddress],
+      account,
+    });
+
+    return wallet.writeContract(request);
+  }
+
+  /**
    * Report resolution after UMA settlement
    */
   async reportResolution(params: { marketId: bigint; outcome: string }) {
@@ -434,6 +546,8 @@ export class UmaModule extends BaseModule {
       canSettle: currentTime >= expirationTime,
       disputer: assertion.disputer as `0x${string}`,
       isDisputed: assertion.disputer !== '0x0000000000000000000000000000000000000000',
+      currency: assertion.currency as Address,
+      bond: BigInt(assertion.bond),
     };
   }
 
