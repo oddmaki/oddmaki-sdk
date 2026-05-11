@@ -1,9 +1,11 @@
 import { privateKeyToAccount } from 'viem/accounts';
 import { baseSepolia } from 'viem/chains';
-import { http, decodeEventLog, type Hex, type TransactionReceipt, type Abi } from 'viem';
+import { formatUnits, http, decodeEventLog, type Hex, type TransactionReceipt, type Abi } from 'viem';
 import { createOddMakiClient } from '../../../src/client';
 import { CONTRACT_ADDRESSES } from '../../../src/config';
 import type { OddMakiClient } from '../../../src/client';
+
+const CIRCLE_FAUCET_URL = 'https://faucet.circle.com';
 
 // ---------------------------------------------------------------------------
 // Addresses (re-exported from SDK config for convenience)
@@ -37,8 +39,9 @@ export function getTestAccount() {
   if (!raw) {
     throw new Error(
       'ODDMAKI_TEST_PRIVATE_KEY env var is not set.\n' +
-        'Set it to a Base Sepolia private key with ETH for gas.\n' +
-        'MockUSD is minted on the fly — only testnet ETH is needed.\n' +
+        'Set it to a Base Sepolia private key with:\n' +
+        '  - ETH for gas\n' +
+        `  - USDC for collateral (get it from ${CIRCLE_FAUCET_URL})\n` +
         'Example: ODDMAKI_TEST_PRIVATE_KEY=0xabc... pnpm run test:live',
     );
   }
@@ -133,22 +136,32 @@ export function parseAllEventsFromReceipt(
 // ---------------------------------------------------------------------------
 
 /**
- * Mint MockUSD to the test account and approve the Diamond to spend it.
- * Waits for both transactions to be mined.
+ * Assert the test account holds at least `amount` of (real) USDC and ensure the
+ * Diamond is approved to spend at least that much. Throws with faucet instructions
+ * if the wallet is underfunded. Idempotent — approves only when current allowance
+ * is below `amount`.
  */
-export async function mintAndApproveUSDC(
+export async function ensureBalanceAndApprove(
   client: OddMakiClient,
   amount: bigint,
 ): Promise<void> {
   const account = getTestAccount();
 
-  // Mint
-  const mintHash = await client.token.mint(USDC_ADDRESS, account.address, amount);
-  await waitForTx(client, mintHash);
+  const balance = await client.token.getBalance(USDC_ADDRESS, account.address);
+  if (balance < amount) {
+    throw new Error(
+      `Test wallet ${account.address} has insufficient USDC on Base Sepolia.\n` +
+        `  required: ${formatUnits(amount, 6)} USDC\n` +
+        `  balance:  ${formatUnits(balance, 6)} USDC\n` +
+        `Fund the wallet from ${CIRCLE_FAUCET_URL} (select Base Sepolia) before re-running.`,
+    );
+  }
 
-  // Approve Diamond
-  const approveHash = await client.token.approve(USDC_ADDRESS, DIAMOND_ADDRESS, amount);
-  await waitForTx(client, approveHash);
+  const allowance = await client.token.getAllowance(USDC_ADDRESS, account.address, DIAMOND_ADDRESS);
+  if (allowance < amount) {
+    const approveHash = await client.token.approve(USDC_ADDRESS, DIAMOND_ADDRESS, amount);
+    await waitForTx(client, approveHash);
+  }
 }
 
 // Inline ABI fragment for CTF setApprovalForAll (not in the SDK's ConditionalTokens ABI)

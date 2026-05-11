@@ -3,11 +3,11 @@ import { parseUnits, parseEther } from 'viem';
 import {
   hasTestAccount,
   createTestClient,
-  mintAndApproveUSDC,
   waitForTx,
   parseEventFromReceipt,
   USDC_ADDRESS,
 } from './helpers/setup';
+import { ensureUsdcFunded } from './helpers/fixtures';
 import { waitForSubgraphSync } from './helpers/subgraph-sync';
 import { readSharedState } from './helpers/shared-state';
 import { PythResolutionFacetABI } from '../../src/contracts';
@@ -27,8 +27,8 @@ describe.skipIf(!hasTestAccount())('Pyth price market', () => {
     const state = readSharedState();
     venueId = BigInt(state.venueId);
 
-    // Mint + approve for market creation fee
-    await mintAndApproveUSDC(client, parseUnits('100', 6));
+    // Wallet must hold USDC (https://faucet.circle.com) for market creation fee.
+    await ensureUsdcFunded(client, parseUnits('20', 6));
 
     // Create a strike market (no Pyth update data needed at creation time).
     // Contract requires closeTime >= block.timestamp + 300s. Add a 60s buffer

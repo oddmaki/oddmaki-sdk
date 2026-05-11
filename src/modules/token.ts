@@ -4,24 +4,6 @@ import type { Address } from 'viem';
 
 export class TokenModule extends BaseModule {
   /**
-   * Mint tokens (for testnet/mock tokens only)
-   */
-  async mint(token: Address, to: Address, amount: bigint) {
-    const wallet = this.walletClient;
-    const account = await this.getSignerAccount();
-
-    const { request } = await this.publicClient.simulateContract({
-      address: token,
-      abi: ERC20ABI,
-      functionName: 'mint',
-      args: [to, amount],
-      account,
-    });
-
-    return wallet.writeContract(request);
-  }
-
-  /**
    * Approve a spender to spend tokens
    */
   async approve(token: Address, spender: Address, amount: bigint) {

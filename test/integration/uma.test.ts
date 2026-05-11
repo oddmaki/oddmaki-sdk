@@ -34,9 +34,9 @@ describe.skipIf(!hasTestAccount())('UMA resolution (reachable surface)', () => {
   beforeAll(async () => {
     client = createTestClient();
 
-    // Generous mint: market creation fee + bond (UMA minimum can exceed our
-    // venue's umaMinBond) + outcome tokens for follow-on tests.
-    await ensureUsdcFunded(client, parseUnits('500', 6));
+    // Wallet must hold USDC (https://faucet.circle.com). Covers market creation
+    // fee + UMA bond (UMA minimum may exceed venue.umaMinBond) + small follow-ons.
+    await ensureUsdcFunded(client, parseUnits('20', 6));
     await approveCTFForDiamond(client);
 
     venueId = await createVenueFixture(client, {

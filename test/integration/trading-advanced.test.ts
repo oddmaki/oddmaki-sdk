@@ -33,8 +33,9 @@ describe.skipIf(!hasTestAccount())('Advanced trading flows', () => {
   beforeAll(async () => {
     client = createTestClient();
 
-    // Fund generously — we run many write ops across 3 markets.
-    await ensureUsdcFunded(client, parseUnits('5000', 6));
+    // Wallet must hold USDC (https://faucet.circle.com). Actual on-chain
+    // amounts in this suite are small (<= 10 USDC per op).
+    await ensureUsdcFunded(client, parseUnits('20', 6));
 
     // Minimum-fee venue (1 bps is the smallest the validator allows) so MINT/MERGE
     // feasibility thresholds stay small and our chosen tick sums are well above them.

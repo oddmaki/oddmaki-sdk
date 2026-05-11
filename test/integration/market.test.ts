@@ -3,11 +3,11 @@ import { parseUnits, parseEther } from 'viem';
 import {
   hasTestAccount,
   createTestClient,
-  mintAndApproveUSDC,
   waitForTx,
   parseEventFromReceipt,
   USDC_ADDRESS,
 } from './helpers/setup';
+import { ensureUsdcFunded } from './helpers/fixtures';
 import { waitForSubgraphSync } from './helpers/subgraph-sync';
 import { readSharedState } from './helpers/shared-state';
 import { MarketsFacetABI } from '../../src/contracts';
@@ -24,8 +24,8 @@ describe.skipIf(!hasTestAccount())('Market creation', () => {
     const state = readSharedState();
     venueId = BigInt(state.venueId);
 
-    // Mint + approve for market creation fee
-    await mintAndApproveUSDC(client, parseUnits('100', 6));
+    // Wallet must hold USDC (https://faucet.circle.com) for market creation fee.
+    await ensureUsdcFunded(client, parseUnits('20', 6));
 
     const txHash = await client.market.createMarket({
       venueId,
