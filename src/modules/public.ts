@@ -1,3 +1,5 @@
+import type { TypedDocumentNode } from '@graphql-typed-document-node/core';
+import { gql } from 'graphql-request';
 import { BaseModule } from './base';
 import { calculateChancePercent } from '../utils/conversions';
 
@@ -527,4 +529,126 @@ export class PublicModule extends BaseModule {
       first: params.first || 20,
     });
   }
+
+  // ============================================
+  // Raw subgraph access
+  // ============================================
+
+  /**
+   * Run an arbitrary GraphQL query against the same subgraph endpoint the SDK
+   * uses. Lets external services (e.g. cron workers) share the SDK's
+   * subgraph connection without instantiating their own GraphQLClient.
+   */
+  async raw<T = unknown>(
+    query: string | TypedDocumentNode<T>,
+    variables?: Record<string, unknown>,
+  ): Promise<T> {
+    return this.subgraph.request<T>(query, variables);
+  }
+
+  // ============================================
+  // Price Markets
+  // ============================================
+
+  /**
+   * Find an unresolved PriceMarket matching (feedId, closeTime) created by
+   * `creator`. Returns null when no match exists. Used as a create-idempotency
+   * check by price-market bots before submitting a new market.
+   */
+  async findPriceMarketByFeedAndCloseTime(params: {
+    pythFeedId: `0x${string}`;
+    closeTime: bigint;
+    creator: `0x${string}`;
+  }): Promise<{ marketId: bigint } | null> {
+    const data = await this.subgraph.request<{
+      priceMarkets: Array<{ id: string; market: { marketId: string } }>;
+    }>(FIND_PRICE_MARKET_BY_FEED_AND_CLOSE_TIME, {
+      feedId: params.pythFeedId.toLowerCase(),
+      closeTime: params.closeTime.toString(),
+      creator: params.creator.toLowerCase(),
+    });
+    const hit = data.priceMarkets[0];
+    return hit ? { marketId: BigInt(hit.market.marketId) } : null;
+  }
+
+  /**
+   * List unresolved PriceMarkets created by `creator` whose closeTime is in
+   * the past and whose parent Market is still Active, ordered by closeTime
+   * ascending. Used by resolution cron workers to find markets that need
+   * settling.
+   */
+  async findExpiredOpenPriceMarkets(params: {
+    creator: `0x${string}`;
+    now: bigint;
+    first?: number;
+  }): Promise<
+    Array<{ marketId: bigint; feedId: `0x${string}`; closeTime: bigint }>
+  > {
+    const data = await this.subgraph.request<{
+      priceMarkets: Array<{
+        id: string;
+        feedId: string;
+        closeTime: string;
+        market: { marketId: string };
+      }>;
+    }>(FIND_EXPIRED_OPEN_PRICE_MARKETS, {
+      creator: params.creator.toLowerCase(),
+      now: params.now.toString(),
+      first: params.first ?? 100,
+    });
+    return data.priceMarkets.map((p) => ({
+      marketId: BigInt(p.market.marketId),
+      feedId: p.feedId as `0x${string}`,
+      closeTime: BigInt(p.closeTime),
+    }));
+  }
 }
+
+const FIND_PRICE_MARKET_BY_FEED_AND_CLOSE_TIME = gql`
+  query FindPriceMarketByFeedAndCloseTime(
+    $feedId: Bytes!
+    $closeTime: BigInt!
+    $creator: Bytes!
+  ) {
+    priceMarkets(
+      where: {
+        feedId: $feedId
+        closeTime: $closeTime
+        resolved: false
+        market_: { creator: $creator }
+      }
+      first: 1
+    ) {
+      id
+      market {
+        marketId
+      }
+    }
+  }
+`;
+
+const FIND_EXPIRED_OPEN_PRICE_MARKETS = gql`
+  query FindExpiredOpenPriceMarkets(
+    $creator: Bytes!
+    $now: BigInt!
+    $first: Int!
+  ) {
+    priceMarkets(
+      where: {
+        resolved: false
+        closeTime_lt: $now
+        market_: { creator: $creator, status: Active }
+      }
+      first: $first
+      orderBy: closeTime
+      orderDirection: asc
+    ) {
+      id
+      feedId
+      closeTime
+      market {
+        marketId
+      }
+    }
+  }
+`;

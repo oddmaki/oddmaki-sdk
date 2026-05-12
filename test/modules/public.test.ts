@@ -124,4 +124,139 @@ describe('PublicModule', () => {
     });
     expect(result).toEqual(mockData);
   });
+
+  describe('raw', () => {
+    it('passes query and variables straight through to subgraph', async () => {
+      const mockData = { foo: 'bar' };
+      mockRequest.mockResolvedValueOnce(mockData);
+
+      const query = 'query Foo($x: Int!) { foo(x: $x) }';
+      const result = await module.raw(query, { x: 42 });
+
+      expect(mockRequest).toHaveBeenCalledWith(query, { x: 42 });
+      expect(result).toEqual(mockData);
+    });
+
+    it('works without variables', async () => {
+      mockRequest.mockResolvedValueOnce({ ok: true });
+      await module.raw('query { ok }');
+      expect(mockRequest).toHaveBeenCalledWith('query { ok }', undefined);
+    });
+  });
+
+  describe('findPriceMarketByFeedAndCloseTime', () => {
+    const params = {
+      pythFeedId:
+        '0xE62DF6C8B4A85FE1A67DB44DC12DE5DB330F7AC66B72DC658AFEDF0F4A415B43' as `0x${string}`,
+      closeTime: 1_800_000_000n,
+      creator: '0xABcd000000000000000000000000000000000001' as `0x${string}`,
+    };
+
+    it('lowercases address args and stringifies bigints', async () => {
+      mockRequest.mockResolvedValueOnce({ priceMarkets: [] });
+
+      await module.findPriceMarketByFeedAndCloseTime(params);
+
+      expect(mockRequest).toHaveBeenCalledWith(expect.anything(), {
+        feedId: params.pythFeedId.toLowerCase(),
+        closeTime: '1800000000',
+        creator: params.creator.toLowerCase(),
+      });
+    });
+
+    it('returns marketId as bigint on hit', async () => {
+      mockRequest.mockResolvedValueOnce({
+        priceMarkets: [{ id: 'pm-1', market: { marketId: '7' } }],
+      });
+
+      const result = await module.findPriceMarketByFeedAndCloseTime(params);
+
+      expect(result).toEqual({ marketId: 7n });
+    });
+
+    it('returns null when no match', async () => {
+      mockRequest.mockResolvedValueOnce({ priceMarkets: [] });
+
+      const result = await module.findPriceMarketByFeedAndCloseTime(params);
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('findExpiredOpenPriceMarkets', () => {
+    const creator =
+      '0xABcd000000000000000000000000000000000001' as `0x${string}`;
+
+    it('passes creator (lowercased), now, and default first=100', async () => {
+      mockRequest.mockResolvedValueOnce({ priceMarkets: [] });
+
+      await module.findExpiredOpenPriceMarkets({
+        creator,
+        now: 1_800_000_000n,
+      });
+
+      expect(mockRequest).toHaveBeenCalledWith(expect.anything(), {
+        creator: creator.toLowerCase(),
+        now: '1800000000',
+        first: 100,
+      });
+    });
+
+    it('respects custom first', async () => {
+      mockRequest.mockResolvedValueOnce({ priceMarkets: [] });
+
+      await module.findExpiredOpenPriceMarkets({
+        creator,
+        now: 1_800_000_000n,
+        first: 25,
+      });
+
+      expect(mockRequest).toHaveBeenCalledWith(expect.anything(), {
+        creator: creator.toLowerCase(),
+        now: '1800000000',
+        first: 25,
+      });
+    });
+
+    it('coerces string fields back to bigint/hex', async () => {
+      mockRequest.mockResolvedValueOnce({
+        priceMarkets: [
+          {
+            id: 'pm-1',
+            feedId:
+              '0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43',
+            closeTime: '1799999000',
+            market: { marketId: '1' },
+          },
+          {
+            id: 'pm-2',
+            feedId:
+              '0xff5cc3d1bcd0c9c0e0eaccd5b67ea4f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0',
+            closeTime: '1799999500',
+            market: { marketId: '2' },
+          },
+        ],
+      });
+
+      const result = await module.findExpiredOpenPriceMarkets({
+        creator,
+        now: 1_800_000_000n,
+      });
+
+      expect(result).toEqual([
+        {
+          marketId: 1n,
+          feedId:
+            '0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43',
+          closeTime: 1_799_999_000n,
+        },
+        {
+          marketId: 2n,
+          feedId:
+            '0xff5cc3d1bcd0c9c0e0eaccd5b67ea4f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0',
+          closeTime: 1_799_999_500n,
+        },
+      ]);
+    });
+  });
 });

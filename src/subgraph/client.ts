@@ -1,4 +1,5 @@
-import { GraphQLClient } from 'graphql-request';
+import { GraphQLClient, type RequestDocument } from 'graphql-request';
+import type { TypedDocumentNode } from '@graphql-typed-document-node/core';
 
 export class SubgraphClient {
   private client: GraphQLClient;
@@ -7,7 +8,10 @@ export class SubgraphClient {
     this.client = new GraphQLClient(endpoint);
   }
 
-  async request<T>(query: string, variables?: Record<string, any>): Promise<T> {
-    return this.client.request<T>(query, variables);
+  async request<T>(
+    query: RequestDocument | TypedDocumentNode<T, Record<string, unknown>>,
+    variables?: Record<string, unknown>,
+  ): Promise<T> {
+    return this.client.request<T>(query as RequestDocument, variables);
   }
 }
