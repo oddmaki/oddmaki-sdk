@@ -26,6 +26,7 @@ import {
   GET_MARKET_GROUP_ITEM,
   GET_UNIFIED_MARKET_FEED,
   GET_UNIFIED_MARKET_FEED_BY_VOLUME,
+  GET_PRICE_MARKET_SERIES,
   GET_ALL_MARKETS_FEED,
   GET_ALL_MARKETS_FEED_BY_VOLUME,
   GET_RECENT_TRADES,
@@ -282,7 +283,8 @@ export class PublicModule extends BaseModule {
 
   /**
    * Merge and sort unified feed results
-   * Combines standaloneMarkets and marketGroups into a single sorted array
+   * Combines standaloneMarkets, marketGroups, and priceMarketSeries into a single sorted array.
+   * Each row in the merged feed carries a `type` discriminator: 'standalone' | 'group' | 'series'.
    */
   mergeAndSortFeed(
     feedData: any,
@@ -315,14 +317,63 @@ export class PublicModule extends BaseModule {
       };
     });
 
+    // Price market series rows. Sort key is the current market's volume when sorting
+    // by volume, otherwise the series' updatedAt (which is bumped on each new window).
+    const series = (feedData.priceMarketSeries || []).map((s: any) => ({
+      ...s,
+      type: 'series' as const,
+      sortValue:
+        sortBy === 'volume'
+          ? BigInt(s.currentMarket?.totalVolume || '0')
+          : BigInt(s.updatedAt || s.createdAt || '0'),
+    }));
+
     // Merge and sort
-    const merged = [...standalone, ...groups].sort((a, b) => {
+    const merged = [...standalone, ...groups, ...series].sort((a, b) => {
       // Sort descending (highest/newest first)
       return a.sortValue > b.sortValue ? -1 : 1;
     });
 
     // Apply limit if specified
     return limit ? merged.slice(0, limit) : merged;
+  }
+
+  /**
+   * Get a PriceMarketSeries with all its member markets.
+   *
+   * Used by the market detail page to render the time-button navigation strip
+   * showing past, current, and upcoming windows for the same asset+interval.
+   *
+   * @param params.venueId - Venue the series belongs to
+   * @param params.seriesKey - Series key, e.g. "btc-updown-5m"
+   * @returns The series with `markets` array, or null if not found
+   */
+  async getPriceMarketSeries(params: {
+    venueId: bigint;
+    seriesKey: string;
+  }): Promise<any | null> {
+    const response = await this.subgraph.request<any>(GET_PRICE_MARKET_SERIES, {
+      venueId: params.venueId.toString(),
+      seriesKey: params.seriesKey,
+    });
+    return response.priceMarketSeries?.[0] || null;
+  }
+
+  /**
+   * Helper: extract the seriesKey from a market's tags.
+   *
+   * A market belongs to a price series iff its tags contain both "price-market"
+   * and a "series:<key>" tag. Returns the key (without prefix) or null.
+   */
+  extractSeriesKey(tags: string[] | undefined | null): string | null {
+    if (!tags) return null;
+    let hasPriceMarketTag = false;
+    let seriesKey: string | null = null;
+    for (const t of tags) {
+      if (t === 'price-market') hasPriceMarketTag = true;
+      else if (t.startsWith('series:')) seriesKey = t.slice('series:'.length);
+    }
+    return hasPriceMarketTag ? seriesKey : null;
   }
 
   /**

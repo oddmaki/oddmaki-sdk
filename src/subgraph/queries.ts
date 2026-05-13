@@ -536,9 +536,14 @@ export const GET_UNIFIED_MARKET_FEED = gql`
     $first: Int = 50
     $skip: Int = 0
   ) {
-    # Standalone binary markets (not in groups)
+    # Standalone binary markets (not in groups, not part of a price series)
     standaloneMarkets: markets(
-      where: { groupId: "0", venue_: { venueId: $venueId }, status_not: "Draft" }
+      where: {
+        groupId: "0"
+        venue_: { venueId: $venueId }
+        status_not: "Draft"
+        priceSeries: null
+      }
       first: $first
       skip: $skip
       orderBy: createdAt
@@ -633,6 +638,62 @@ export const GET_UNIFIED_MARKET_FEED = gql`
         }
       }
     }
+
+    # Price market series — one row per (venue, seriesKey)
+    priceMarketSeries(
+      where: { venue_: { venueId: $venueId }, status_not: "Resolved" }
+      first: $first
+      skip: $skip
+      orderBy: updatedAt
+      orderDirection: desc
+    ) {
+      id
+      seriesKey
+      asset
+      kind
+      interval
+      intervalSeconds
+      status
+      tags
+      createdAt
+      updatedAt
+      currentMarket {
+        id
+        marketId
+        question
+        outcomes
+        status
+        collateralToken
+        conditionId
+        tickSize
+        lastPriceTick_0
+        lastPriceTick_1
+        lastTradeTimestamp
+        lastTradeTimestamp_0
+        lastTradeTimestamp_1
+        topOfBook {
+          outcome
+          side
+          topTick
+        }
+        totalVolume
+        metadataURI
+        createdAt
+        priceMarket {
+          provider
+          feedId
+          strikePrice
+          priceExpo
+          openTime
+          closeTime
+        }
+      }
+      venue {
+        id
+        venueId
+        name
+      }
+    }
   }
 `;
 
@@ -645,9 +706,14 @@ export const GET_UNIFIED_MARKET_FEED_BY_VOLUME = gql`
     $first: Int = 50
     $skip: Int = 0
   ) {
-    # Standalone binary markets sorted by volume
+    # Standalone binary markets sorted by volume (excluding price series members)
     standaloneMarkets: markets(
-      where: { groupId: "0", venue_: { venueId: $venueId }, status_not: "Draft" }
+      where: {
+        groupId: "0"
+        venue_: { venueId: $venueId }
+        status_not: "Draft"
+        priceSeries: null
+      }
       first: $first
       skip: $skip
       orderBy: totalVolume
@@ -729,6 +795,61 @@ export const GET_UNIFIED_MARKET_FEED_BY_VOLUME = gql`
         }
       }
     }
+
+    # Price market series — venue-scoped, only those with an active current market
+    priceMarketSeries(
+      where: { venue_: { venueId: $venueId }, status_not: "Resolved" }
+      first: $first
+      skip: $skip
+      orderBy: updatedAt
+      orderDirection: desc
+    ) {
+      id
+      seriesKey
+      asset
+      kind
+      interval
+      intervalSeconds
+      status
+      tags
+      createdAt
+      updatedAt
+      currentMarket {
+        id
+        marketId
+        question
+        outcomes
+        status
+        collateralToken
+        tickSize
+        lastPriceTick_0
+        lastPriceTick_1
+        lastTradeTimestamp
+        lastTradeTimestamp_0
+        lastTradeTimestamp_1
+        topOfBook {
+          outcome
+          side
+          topTick
+        }
+        totalVolume
+        metadataURI
+        createdAt
+        priceMarket {
+          provider
+          feedId
+          strikePrice
+          priceExpo
+          openTime
+          closeTime
+        }
+      }
+      venue {
+        id
+        venueId
+        name
+      }
+    }
   }
 `;
 
@@ -742,9 +863,9 @@ export const GET_UNIFIED_MARKET_FEED_BY_VOLUME = gql`
  */
 export const GET_ALL_MARKETS_FEED = gql`
   query GetAllMarketsFeed($first: Int = 50, $skip: Int = 0) {
-    # Standalone binary markets (not in groups)
+    # Standalone binary markets (not in groups, not part of a price series)
     standaloneMarkets: markets(
-      where: { groupId: "0", status_not: "Draft" }
+      where: { groupId: "0", status_not: "Draft", priceSeries: null }
       first: $first
       skip: $skip
       orderBy: createdAt
@@ -833,6 +954,58 @@ export const GET_ALL_MARKETS_FEED = gql`
         }
       }
     }
+
+    # Price market series across all venues
+    priceMarketSeries(
+      where: { status_not: "Resolved" }
+      first: $first
+      skip: $skip
+      orderBy: updatedAt
+      orderDirection: desc
+    ) {
+      id
+      seriesKey
+      asset
+      kind
+      interval
+      intervalSeconds
+      status
+      tags
+      createdAt
+      updatedAt
+      currentMarket {
+        id
+        marketId
+        question
+        outcomes
+        status
+        collateralToken
+        tickSize
+        lastPriceTick_0
+        lastPriceTick_1
+        lastTradeTimestamp
+        topOfBook {
+          outcome
+          side
+          topTick
+        }
+        totalVolume
+        createdAt
+        priceMarket {
+          provider
+          feedId
+          strikePrice
+          priceExpo
+          openTime
+          closeTime
+        }
+      }
+      venue {
+        id
+        venueId
+        name
+      }
+    }
   }
 `;
 
@@ -842,7 +1015,7 @@ export const GET_ALL_MARKETS_FEED = gql`
 export const GET_ALL_MARKETS_FEED_BY_VOLUME = gql`
   query GetAllMarketsFeedByVolume($first: Int = 50, $skip: Int = 0) {
     standaloneMarkets: markets(
-      where: { groupId: "0", status_not: "Draft" }
+      where: { groupId: "0", status_not: "Draft", priceSeries: null }
       first: $first
       skip: $skip
       orderBy: totalVolume
@@ -923,6 +1096,107 @@ export const GET_ALL_MARKETS_FEED_BY_VOLUME = gql`
         marketGroupItem {
           marketName
           isPlaceholder
+        }
+      }
+    }
+
+    # Price market series across all venues, sorted by volume of current market
+    priceMarketSeries(
+      where: { status_not: "Resolved" }
+      first: $first
+      skip: $skip
+      orderBy: updatedAt
+      orderDirection: desc
+    ) {
+      id
+      seriesKey
+      asset
+      kind
+      interval
+      intervalSeconds
+      status
+      tags
+      createdAt
+      updatedAt
+      currentMarket {
+        id
+        marketId
+        question
+        outcomes
+        status
+        collateralToken
+        tickSize
+        lastPriceTick_0
+        lastPriceTick_1
+        lastTradeTimestamp
+        topOfBook {
+          outcome
+          side
+          topTick
+        }
+        totalVolume
+        createdAt
+        priceMarket {
+          provider
+          feedId
+          strikePrice
+          priceExpo
+          openTime
+          closeTime
+        }
+      }
+      venue {
+        id
+        venueId
+        name
+      }
+    }
+  }
+`;
+
+/**
+ * Get a single PriceMarketSeries with all its member markets, ordered by closeTime.
+ * Used by the market detail page to render the time-button navigation strip.
+ */
+export const GET_PRICE_MARKET_SERIES = gql`
+  query GetPriceMarketSeries($venueId: BigInt!, $seriesKey: String!) {
+    priceMarketSeries(
+      where: { venue_: { venueId: $venueId }, seriesKey: $seriesKey }
+      first: 1
+    ) {
+      id
+      seriesKey
+      asset
+      kind
+      interval
+      intervalSeconds
+      status
+      tags
+      createdAt
+      updatedAt
+      currentMarket {
+        id
+        marketId
+      }
+      venue {
+        id
+        venueId
+        name
+      }
+      markets {
+        id
+        marketId
+        question
+        status
+        resolvedOutcome
+        outcomes
+        priceMarket {
+          openTime
+          closeTime
+          resolved
+          outcome
+          finalPrice
+          strikePrice
         }
       }
     }
