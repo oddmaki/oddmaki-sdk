@@ -1183,7 +1183,7 @@ export const GET_PRICE_MARKET_SERIES = gql`
         venueId
         name
       }
-      markets {
+      markets(first: 1000, orderBy: marketId, orderDirection: asc) {
         id
         marketId
         question
