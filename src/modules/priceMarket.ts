@@ -199,10 +199,12 @@ export class PriceMarketModule extends BaseModule {
     }
 
     const isDeferred = pm.strikePrice === BigInt(0);
+    const windowSeconds = Number(pm.resolutionWindow);
 
     const closeVAA = await this.fetchPythHistoricalData(
       pm.feedId,
       Number(pm.closeTime),
+      windowSeconds,
     );
 
     let pythUpdateData: `0x${string}`[];
@@ -210,6 +212,7 @@ export class PriceMarketModule extends BaseModule {
       const openVAA = await this.fetchPythHistoricalData(
         pm.feedId,
         Number(pm.openTime),
+        windowSeconds,
       );
       pythUpdateData = [...openVAA, ...closeVAA];
     } else {
@@ -484,20 +487,12 @@ export class PriceMarketModule extends BaseModule {
     const now = BigInt(Math.floor(Date.now() / 1000));
     if (now < pm.openTime) return null;
 
-    const url = `${PYTH_HERMES_BASE}/v2/updates/price/${pm.openTime}?ids[]=${pm.feedId}`;
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(
-        `Pyth Hermes API error: ${response.status} ${response.statusText}`,
-      );
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data: any = await response.json();
-    const parsed = data.parsed?.[0];
-    if (!parsed?.price) {
-      throw new Error('Pyth Hermes response missing parsed.price for open VAA');
-    }
+    const parsed = await this.fetchPythHistoricalParsed(
+      pm.feedId,
+      Number(pm.openTime),
+      Number(pm.resolutionWindow),
+    );
+    if (!parsed) return null;
 
     return {
       price: BigInt(parsed.price.price),
@@ -509,29 +504,138 @@ export class PriceMarketModule extends BaseModule {
   }
 
   /**
-   * Fetch historical Pyth price update data at a specific timestamp.
-   * Used internally by {@link resolvePyth} to fetch open-window and
-   * close-window VAAs.
+   * Fetch historical Pyth price update data covering the window
+   * `[publishTime, publishTime + windowSeconds]`.
+   *
+   * Hermes serves a VAA AT the exact requested second when one exists, and
+   * 404s when no publish landed in that second. For low-volume feeds or
+   * markets resolving deep in the past this means a single request at
+   * `publishTime` is fragile. This helper walks a few sample points across
+   * the window until it finds a VAA, transparently retrying with exponential
+   * backoff on 429.
+   *
+   * The on-chain `pickEarliestInWindow` accepts any VAA whose `publishTime`
+   * falls in the same window, so returning an offset VAA is correct as long
+   * as it's still in range.
    */
   private async fetchPythHistoricalData(
     feedId: `0x${string}`,
     publishTime: number,
+    windowSeconds: number,
   ): Promise<`0x${string}`[]> {
-    const url = `${PYTH_HERMES_BASE}/v2/updates/price/${publishTime}?ids[]=${feedId}`;
-    const response = await fetch(url);
+    const result = await this.fetchPythHistoricalRaw(
+      feedId,
+      publishTime,
+      windowSeconds,
+    );
+    if (!result) {
+      throw new Error(
+        `No Pyth VAA available in window [${publishTime}, ${publishTime + windowSeconds}] for feed ${feedId}`,
+      );
+    }
+    return result.updateData;
+  }
 
-    if (!response.ok) {
-      throw new Error(`Pyth Hermes API error: ${response.status} ${response.statusText}`);
+  /**
+   * Hermes parsed+binary fetch shared by {@link fetchPythHistoricalData} and
+   * {@link fetchProjectedOpenPrice}. Returns the first in-window VAA whose
+   * Hermes response includes a `parsed[0].price` entry, walking a few sample
+   * timestamps across the window before giving up. Returns `null` on
+   * complete miss so the caller can decide how to surface the failure
+   * (resolution throws; UI projection returns null gracefully).
+   */
+  private async fetchPythHistoricalParsed(
+    feedId: `0x${string}`,
+    publishTime: number,
+    windowSeconds: number,
+  ): Promise<{ price: { price: string; expo: number; publish_time: number } } | null> {
+    const result = await this.fetchPythHistoricalRaw(
+      feedId,
+      publishTime,
+      windowSeconds,
+    );
+    return result?.parsed ?? null;
+  }
+
+  private async fetchPythHistoricalRaw(
+    feedId: `0x${string}`,
+    publishTime: number,
+    windowSeconds: number,
+  ): Promise<{
+    updateData: `0x${string}`[];
+    parsed: { price: { price: string; expo: number; publish_time: number } };
+  } | null> {
+    // Sample at the start, a few points across the window, and the end.
+    // 5 points balance coverage with Hermes rate-limit pressure: any feed
+    // publishing every ~5s is virtually guaranteed to land in one of these.
+    const window = Math.max(0, Math.floor(windowSeconds));
+    const offsets = window === 0
+      ? [0]
+      : Array.from(new Set([
+          0,
+          Math.floor(window / 4),
+          Math.floor(window / 2),
+          Math.floor((3 * window) / 4),
+          window,
+        ])).sort((a, b) => a - b);
+
+    for (const offset of offsets) {
+      const t = publishTime + offset;
+      const url = `${PYTH_HERMES_BASE}/v2/updates/price/${t}?ids[]=${feedId}`;
+
+      const response = await this.hermesFetchWithBackoff(url);
+      if (response === null) continue; // 404 / soft-miss at this timestamp
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data: any = await response.json();
+      const updateDataRaw: string[] | undefined = data.binary?.data;
+      const parsed = data.parsed?.[0];
+
+      if (!updateDataRaw || updateDataRaw.length === 0) continue;
+
+      return {
+        updateData: updateDataRaw.map(
+          (d) => `0x${d}` as `0x${string}`,
+        ),
+        parsed,
+      };
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data: any = await response.json();
-    const updateData = data.binary?.data;
+    return null;
+  }
 
-    if (!updateData || updateData.length === 0) {
-      throw new Error('No historical price data returned from Pyth Hermes');
+  /**
+   * Fetch a Hermes URL with exponential backoff on 429. Returns the response
+   * for 2xx, `null` for 404 (treated as "no VAA at this timestamp, try
+   * another"), and throws for other errors.
+   */
+  private async hermesFetchWithBackoff(
+    url: string,
+    options: { maxAttempts?: number; initialDelayMs?: number } = {},
+  ): Promise<Response | null> {
+    const maxAttempts = options.maxAttempts ?? 4;
+    const initialDelayMs = options.initialDelayMs ?? 500;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const response = await fetch(url);
+      if (response.status === 429) {
+        if (attempt === maxAttempts - 1) {
+          throw new Error(
+            `Pyth Hermes API error: 429 Too Many Requests (gave up after ${maxAttempts} attempts)`,
+          );
+        }
+        const delay = initialDelayMs * Math.pow(2, attempt);
+        await new Promise((r) => setTimeout(r, delay));
+        continue;
+      }
+      if (response.status === 404) return null;
+      if (!response.ok) {
+        throw new Error(
+          `Pyth Hermes API error: ${response.status} ${response.statusText}`,
+        );
+      }
+      return response;
     }
-
-    return updateData.map((d: string) => `0x${d}` as `0x${string}`);
+    return null;
   }
 }
