@@ -73,6 +73,24 @@
   },
   {
     "type": "function",
+    "name": "disputeAssertion",
+    "inputs": [
+      {
+        "name": "assertionId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "disputer",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "getAssertion",
     "inputs": [
       {
@@ -244,24 +262,6 @@
         "name": "assertionId",
         "type": "bytes32",
         "internalType": "bytes32"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "disputeAssertion",
-    "inputs": [
-      {
-        "name": "assertionId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "disputer",
-        "type": "address",
-        "internalType": "address"
       }
     ],
     "outputs": [],

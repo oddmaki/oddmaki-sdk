@@ -5,7 +5,7 @@ export const CONTRACT_ADDRESSES = {
   [baseSepolia.id]: {
     diamond: '0x31a4126aec35b36d46dd371eb0f0d5b71e1c2292' as Address,
     conditionalTokens: '0x7364747372Ac4a175B5326f5B2C9CB1C271d32e8' as Address,
-    usdc: '0x036CbD53842c5426634e7929541eC2318f3dCF7e' as Address,
+    usdc: '0x036cbd53842c5426634e7929541ec2318f3dcf7e' as Address,
     subgraph: 'https://api.studio.thegraph.com/query/1716020/oddmaki-base-sepolia/version/latest',
   },
   [base.id]: {
