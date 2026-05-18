@@ -305,6 +305,32 @@ export class PriceMarketModule extends BaseModule {
   }
 
   /**
+   * Mark a stuck price market as Invalid and refund holders 50/50 via the CTF.
+   * Permissionless: anyone can call this once `closeTime + 7 days` has elapsed.
+   *
+   * Use this for markets that never resolve via Pyth — e.g. the feed was
+   * deprecated by the publisher, or Hermes had no in-window VAA at closeTime.
+   * Reports payouts `[1, 1]` to the CTF, so every YES and every NO token
+   * redeems for half the underlying collateral.
+   *
+   * Reverts on chain with `GracePeriodNotElapsed` if called too early.
+   */
+  async markInvalid(marketId: bigint) {
+    const wallet = this.walletClient;
+    const account = await this.getSignerAccount();
+
+    const { request } = await this.publicClient.simulateContract({
+      address: this.config.diamondAddress,
+      abi: PythResolutionFacetABI,
+      functionName: 'markPriceMarketInvalid',
+      args: [marketId],
+      account,
+    });
+
+    return wallet.writeContract(request);
+  }
+
+  /**
    * Set the Pyth oracle contract address. Diamond owner only.
    */
   async setPythContract(pythContract: Address) {
@@ -605,16 +631,22 @@ export class PriceMarketModule extends BaseModule {
   }
 
   /**
-   * Fetch a Hermes URL with exponential backoff on 429. Returns the response
-   * for 2xx, `null` for 404 (treated as "no VAA at this timestamp, try
-   * another"), and throws for other errors.
+   * Fetch a Hermes URL with a short backoff on 429. Returns the response for
+   * 2xx, `null` for 404 (treated as "no VAA at this timestamp, try another"),
+   * and throws on persistent 429 or other non-OK statuses.
+   *
+   * Budget kept intentionally small (2 attempts) so callers that are already
+   * iterating (e.g. multiple sample timestamps in `fetchPythHistoricalRaw`)
+   * don't compound the rate-limit pressure. If Hermes is genuinely rate-
+   * limiting us, retrying within the same request cycle won't help — better
+   * to fail fast and let the caller back off until the next tick.
    */
   private async hermesFetchWithBackoff(
     url: string,
     options: { maxAttempts?: number; initialDelayMs?: number } = {},
   ): Promise<Response | null> {
-    const maxAttempts = options.maxAttempts ?? 4;
-    const initialDelayMs = options.initialDelayMs ?? 500;
+    const maxAttempts = options.maxAttempts ?? 2;
+    const initialDelayMs = options.initialDelayMs ?? 750;
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       const response = await fetch(url);
