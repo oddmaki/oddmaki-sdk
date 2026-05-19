@@ -591,22 +591,29 @@ export class PriceMarketModule extends BaseModule {
     updateData: `0x${string}`[];
     parsed: { price: { price: string; expo: number; publish_time: number } };
   } | null> {
-    // Sample at the start, a few points across the window, and the end.
-    // 5 points balance coverage with Hermes rate-limit pressure: any feed
-    // publishing every ~5s is virtually guaranteed to land in one of these.
+    // Two sample points: the requested time and the window midpoint. One call
+    // is enough for active feeds (Hermes returns the VAA at or just after the
+    // requested second). The midpoint is a fallback for the rare case where
+    // the exact-second query 404s but a VAA exists later in the window.
+    //
+    // For off-hours feeds (metals, equities outside trading hours) every
+    // sample 404s and we bail after 2 calls — instead of 5 — keeping our
+    // total Hermes-call rate well under the free-tier limit even when the
+    // bot is resolving many markets in a single cron tick.
     const window = Math.max(0, Math.floor(windowSeconds));
     const offsets = window === 0
       ? [0]
-      : Array.from(new Set([
-          0,
-          Math.floor(window / 4),
-          Math.floor(window / 2),
-          Math.floor((3 * window) / 4),
-          window,
-        ])).sort((a, b) => a - b);
+      : Array.from(new Set([0, Math.floor(window / 2)])).sort((a, b) => a - b);
 
-    for (const offset of offsets) {
-      const t = publishTime + offset;
+    for (let i = 0; i < offsets.length; i++) {
+      // Throttle between sample calls so a single fetchPythHistoricalRaw
+      // can't burst more than ~5 req/s even when Hermes 404s the first try.
+      // No throttle on the first call — common path is one fetch.
+      if (i > 0) {
+        await new Promise((r) => setTimeout(r, 200));
+      }
+
+      const t = publishTime + offsets[i];
       const url = `${PYTH_HERMES_BASE}/v2/updates/price/${t}?ids[]=${feedId}`;
 
       const response = await this.hermesFetchWithBackoff(url);
