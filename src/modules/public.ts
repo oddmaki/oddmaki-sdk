@@ -38,6 +38,11 @@ import {
   GET_TRADER_CLOSED_POSITIONS,
   GET_TRADER_FILLS,
   GET_LEADERBOARD,
+  GET_TRADER_VENUE_PROFILE,
+  GET_TRADER_VENUE_POSITIONS,
+  GET_TRADER_VENUE_CLOSED_POSITIONS,
+  GET_TRADER_VENUE_FILLS,
+  GET_VENUE_LEADERBOARD,
   GET_MARKET_TOP_HOLDERS,
 } from '../subgraph/queries';
 
@@ -565,6 +570,91 @@ export class PublicModule extends BaseModule {
       orderDirection: params?.orderDirection || 'desc',
       first: params?.first || 50,
       skip: params?.skip || 0,
+    });
+  }
+
+  // ============================================
+  // Venue-Scoped Trader Analytics
+  // ============================================
+
+  /**
+   * Get a trader's per-venue profile stats. Returns the `UserVenueStat` row
+   * for (venueId, address) when present, else null when the trader has never
+   * traded in this venue.
+   */
+  async getTraderVenueProfile(params: { trader: string; venueId: bigint }) {
+    return this.subgraph.request<any>(GET_TRADER_VENUE_PROFILE, {
+      id: `${params.venueId.toString()}-${params.trader.toLowerCase()}`,
+    });
+  }
+
+  /**
+   * Get a trader's open positions (quantity > 0) scoped to a single venue.
+   */
+  async getTraderVenuePositions(params: {
+    trader: string;
+    venueId: bigint;
+    first?: number;
+    skip?: number;
+  }) {
+    return this.subgraph.request<any>(GET_TRADER_VENUE_POSITIONS, {
+      trader: params.trader.toLowerCase(),
+      venueId: params.venueId.toString(),
+      first: params.first || 100,
+      skip: params.skip || 0,
+    });
+  }
+
+  /**
+   * Get a trader's closed positions (quantity = 0) scoped to a single venue.
+   */
+  async getTraderVenueClosedPositions(params: {
+    trader: string;
+    venueId: bigint;
+    first?: number;
+    skip?: number;
+  }) {
+    return this.subgraph.request<any>(GET_TRADER_VENUE_CLOSED_POSITIONS, {
+      trader: params.trader.toLowerCase(),
+      venueId: params.venueId.toString(),
+      first: params.first || 100,
+      skip: params.skip || 0,
+    });
+  }
+
+  /**
+   * Get a trader's fill history (activity feed) scoped to a single venue.
+   */
+  async getTraderVenueTrades(params: {
+    trader: string;
+    venueId: bigint;
+    first?: number;
+    skip?: number;
+  }) {
+    return this.subgraph.request<any>(GET_TRADER_VENUE_FILLS, {
+      trader: params.trader.toLowerCase(),
+      venueId: params.venueId.toString(),
+      first: params.first || 50,
+      skip: params.skip || 0,
+    });
+  }
+
+  /**
+   * Get the venue-scoped leaderboard (top traders within a single venue).
+   */
+  async getVenueLeaderboard(params: {
+    venueId: bigint;
+    orderBy?: 'totalVolume' | 'totalRealizedPnL' | 'totalTradeCount';
+    orderDirection?: 'asc' | 'desc';
+    first?: number;
+    skip?: number;
+  }) {
+    return this.subgraph.request<any>(GET_VENUE_LEADERBOARD, {
+      venueId: params.venueId.toString(),
+      orderBy: params.orderBy || 'totalVolume',
+      orderDirection: params.orderDirection || 'desc',
+      first: params.first || 50,
+      skip: params.skip || 0,
     });
   }
 

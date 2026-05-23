@@ -1456,6 +1456,208 @@ export const GET_LEADERBOARD = gql`
   }
 `;
 
+// ============================================
+// Venue-Scoped Trader Analytics Queries
+// ============================================
+
+export const GET_TRADER_VENUE_PROFILE = gql`
+  query GetTraderVenueProfile($id: ID!) {
+    userVenueStat(id: $id) {
+      id
+      totalOrdersPlaced
+      totalVolume
+      totalTradeCount
+      totalMarketsTraded
+      totalRealizedPnL
+      firstSeenAt
+      lastSeenAt
+      trader {
+        id
+        address
+      }
+    }
+  }
+`;
+
+export const GET_VENUE_LEADERBOARD = gql`
+  query GetVenueLeaderboard(
+    $venueId: BigInt!
+    $orderBy: UserVenueStat_orderBy = totalVolume
+    $orderDirection: OrderDirection = desc
+    $first: Int = 50
+    $skip: Int = 0
+  ) {
+    userVenueStats(
+      where: { venue_: { venueId: $venueId }, totalTradeCount_gt: "0" }
+      first: $first
+      skip: $skip
+      orderBy: $orderBy
+      orderDirection: $orderDirection
+    ) {
+      id
+      totalVolume
+      totalTradeCount
+      totalMarketsTraded
+      totalRealizedPnL
+      firstSeenAt
+      lastSeenAt
+      trader {
+        id
+        address
+      }
+    }
+  }
+`;
+
+export const GET_TRADER_VENUE_POSITIONS = gql`
+  query GetTraderVenuePositions(
+    $trader: String!
+    $venueId: BigInt!
+    $first: Int = 100
+    $skip: Int = 0
+  ) {
+    traderPositions(
+      where: {
+        trader: $trader
+        venue_: { venueId: $venueId }
+        quantity_gt: "0"
+      }
+      first: $first
+      skip: $skip
+      orderBy: lastTradeAt
+      orderDirection: desc
+    ) {
+      id
+      outcome
+      quantity
+      totalCostBasis
+      avgEntryPrice
+      realizedPnL
+      totalCollateralIn
+      totalCollateralOut
+      buyCount
+      sellCount
+      firstTradeAt
+      lastTradeAt
+      market {
+        id
+        marketId
+        question
+        outcomes
+        status
+        resolvedOutcome
+        tickSize
+        lastPriceTick_0
+        lastPriceTick_1
+        collateralDecimals
+        venue {
+          id
+          venueId
+          name
+        }
+      }
+    }
+  }
+`;
+
+export const GET_TRADER_VENUE_CLOSED_POSITIONS = gql`
+  query GetTraderVenueClosedPositions(
+    $trader: String!
+    $venueId: BigInt!
+    $first: Int = 100
+    $skip: Int = 0
+  ) {
+    traderPositions(
+      where: {
+        trader: $trader
+        venue_: { venueId: $venueId }
+        quantity: "0"
+      }
+      first: $first
+      skip: $skip
+      orderBy: lastTradeAt
+      orderDirection: desc
+    ) {
+      id
+      outcome
+      quantity
+      totalCostBasis
+      avgEntryPrice
+      realizedPnL
+      totalCollateralIn
+      totalCollateralOut
+      buyCount
+      sellCount
+      firstTradeAt
+      lastTradeAt
+      market {
+        id
+        marketId
+        question
+        outcomes
+        status
+        resolvedOutcome
+        tickSize
+        lastPriceTick_0
+        lastPriceTick_1
+        collateralDecimals
+        venue {
+          id
+          venueId
+          name
+        }
+      }
+    }
+  }
+`;
+
+export const GET_TRADER_VENUE_FILLS = gql`
+  query GetTraderVenueFills(
+    $trader: String!
+    $venueId: BigInt!
+    $first: Int = 50
+    $skip: Int = 0
+  ) {
+    fills(
+      where: {
+        trader: $trader
+        market_: { venue_: { venueId: $venueId } }
+      }
+      first: $first
+      skip: $skip
+      orderBy: timestamp
+      orderDirection: desc
+    ) {
+      id
+      outcome
+      side
+      tick
+      amount
+      cost
+      fees
+      tradeType
+      avgPrice
+      timestamp
+      blockNumber
+      transactionHash
+      market {
+        id
+        marketId
+        question
+        outcomes
+        tickSize
+        status
+        collateralDecimals
+        venue {
+          id
+          venueId
+          name
+        }
+      }
+    }
+  }
+`;
+
 export const GET_MARKET_TOP_HOLDERS = gql`
   query GetMarketTopHolders(
     $marketId: String!
