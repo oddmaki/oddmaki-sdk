@@ -1621,7 +1621,7 @@ export const GET_TRADER_VENUE_FILLS = gql`
     fills(
       where: {
         trader: $trader
-        market_: { venue_: { venueId: $venueId } }
+        venue_: { venueId: $venueId }
       }
       first: $first
       skip: $skip
