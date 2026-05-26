@@ -19,5 +19,6 @@ export type { TypedDocumentNode } from '@graphql-typed-document-node/core';
 export * from './utils/conversions';
 export * from './utils/decimals';
 export * from './utils/metadata';
+export * from './utils/feeAwarePricing';
 
 export const version = '0.1.0';
