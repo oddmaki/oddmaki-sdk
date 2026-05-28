@@ -229,6 +229,86 @@ export class MarketModule extends BaseModule {
   }
 
   /**
+   * On-chain mark price for an outcome. Uses the cross-outcome implied
+   * midpoint when the implied spread is within the protocol's tick-size-scaled
+   * threshold (~$0.10), then falls back to last-trade. Returns `isDefined=false`
+   * when neither produces a defensible reference — callers MUST treat that as
+   * "unknown" and avoid fabricating defaults.
+   *
+   * @returns priceTick (BigInt) + isDefined (boolean)
+   */
+  async getMarkPrice(marketId: bigint, outcomeId: bigint) {
+    const result = (await this.publicClient.readContract({
+      address: this.config.diamondAddress,
+      abi: OrderBookFacetABI,
+      functionName: 'getMarkPrice',
+      args: [marketId, outcomeId],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    })) as any;
+    return {
+      priceTick: result[0] as bigint,
+      isDefined: result[1] as boolean,
+    };
+  }
+
+  /**
+   * Mark price as a decimal string (e.g. "0.48"), or null when undefined.
+   *
+   * @param marketId   - Market to query
+   * @param outcomeId  - Outcome id (0=YES, 1=NO)
+   * @param tickSize   - Tick size in 1e18 scale (e.g. 1e16 for 1%). Pass the
+   *                     same value used when the market was created — usually
+   *                     read once from `getMarketTradingData`.
+   */
+  async getMarkPriceSimple(marketId: bigint, outcomeId: bigint, tickSize: bigint) {
+    const { priceTick, isDefined } = await this.getMarkPrice(marketId, outcomeId);
+    if (!isDefined) return { priceTick, isDefined, price: null as string | null };
+    const price = Number(priceTick * tickSize) / 1e18;
+    return { priceTick, isDefined, price: price.toFixed(2) };
+  }
+
+  /**
+   * Implied top-of-book for an outcome, accounting for cross-outcome
+   * mint/merge complement. Use this for "Buy at X¢ / Sell at Y¢" displays —
+   * it's the *raw* implied book, so apply fee math client-side
+   * ({@link applyTakerFeeBuffer}, {@link minBuyTickToCross}, etc.) when
+   * computing what the taker will actually pay.
+   *
+   * @returns impliedBid (BigInt) + impliedAsk (BigInt); zero means no candidate exists.
+   */
+  async getImpliedTopOfBook(marketId: bigint, outcomeId: bigint) {
+    const result = (await this.publicClient.readContract({
+      address: this.config.diamondAddress,
+      abi: OrderBookFacetABI,
+      functionName: 'getImpliedTopOfBook',
+      args: [marketId, outcomeId],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    })) as any;
+    return {
+      impliedBid: result[0] as bigint,
+      impliedAsk: result[1] as bigint,
+    };
+  }
+
+  /**
+   * Implied top-of-book as decimal strings ("0.48" / "0.52"), or null when
+   * the corresponding side has no candidate.
+   */
+  async getImpliedTopOfBookSimple(marketId: bigint, outcomeId: bigint, tickSize: bigint) {
+    const { impliedBid, impliedAsk } = await this.getImpliedTopOfBook(marketId, outcomeId);
+    const fmt = (tick: bigint): string | null => {
+      if (tick === 0n) return null;
+      return (Number(tick * tickSize) / 1e18).toFixed(2);
+    };
+    return {
+      impliedBid,
+      impliedAsk,
+      bidPrice: fmt(impliedBid),
+      askPrice: fmt(impliedAsk),
+    };
+  }
+
+  /**
    * Get user's outcome token balances for a market
    * @param params.formatted - If true, returns decimal strings instead of BigInt (recommended for frontends)
    *

@@ -8,6 +8,10 @@ import {
   estimateBuyFromShares,
   estimateBuyFromAmount,
   estimateSellFromShares,
+  slippagePctToBps,
+  previewMarketBuy,
+  previewMarketSell,
+  MAX_SLIPPAGE_BPS,
   OPERATOR_FEE_BPS,
 } from '../../src/utils/feeAwarePricing';
 
@@ -152,5 +156,70 @@ describe('estimateSellFromShares', () => {
   it('multiplies shares by the fee-net price', () => {
     const est = estimateSellFromShares(100, 0.5297); // 0.53 × (1 - 0.0030 ≈ 0.0030)
     expect(est.proceeds).toBeCloseTo(52.97);
+  });
+});
+
+describe('slippagePctToBps', () => {
+  it('converts 5% to 500 bps', () => {
+    expect(slippagePctToBps(5)).toBe(500n);
+  });
+
+  it('accepts string input', () => {
+    expect(slippagePctToBps('2.5')).toBe(250n);
+  });
+
+  it('caps at MAX_SLIPPAGE_BPS (20%)', () => {
+    expect(slippagePctToBps(25)).toBe(MAX_SLIPPAGE_BPS);
+    expect(slippagePctToBps(100)).toBe(MAX_SLIPPAGE_BPS);
+  });
+
+  it('treats negative / non-finite as 0', () => {
+    expect(slippagePctToBps(-1)).toBe(0n);
+    expect(slippagePctToBps(NaN)).toBe(0n);
+  });
+});
+
+describe('previewMarketBuy', () => {
+  it('computes expected / worst-case shares at mark + slippage + fees', () => {
+    // $10 budget, mark = 50¢, 5% slippage, 110 bps fees
+    const p = previewMarketBuy({ amount: 10, markPrice: 0.5, slippagePct: 5, feeBps: 110 });
+    // Expected cost per share = 0.5 × 1.011 = 0.5055; expected shares = 10/0.5055 ≈ 19.78
+    expect(p.expectedPricePerShare).toBeCloseTo(0.5055, 4);
+    expect(p.expectedShares).toBeCloseTo(19.7824, 3);
+    // Worst-case cost = 0.5 × 1.05 × 1.011 = 0.530775; shares = 10/0.530775 ≈ 18.84
+    expect(p.worstPricePerShare).toBeCloseTo(0.530775, 4);
+    expect(p.worstCaseShares).toBeCloseTo(18.840, 2);
+    expect(p.expectedPayout).toBeCloseTo(19.7824, 3);
+    expect(p.expectedProfit).toBeCloseTo(9.7824, 3);
+  });
+
+  it('handles zero mark price gracefully', () => {
+    const p = previewMarketBuy({ amount: 10, markPrice: 0, slippagePct: 5, feeBps: 110 });
+    expect(p.expectedShares).toBe(0);
+    expect(p.worstCaseShares).toBe(0);
+    expect(p.expectedProfit).toBe(-10);
+  });
+
+  it('accepts BigInt feeBps', () => {
+    const p = previewMarketBuy({ amount: 10, markPrice: 0.5, slippagePct: 0, feeBps: 110n });
+    expect(p.expectedShares).toBeCloseTo(19.7824, 3);
+  });
+});
+
+describe('previewMarketSell', () => {
+  it('computes expected / worst-case net proceeds', () => {
+    // 100 shares, mark = 60¢, 5% slippage, 110 bps fees
+    const p = previewMarketSell({ shares: 100, markPrice: 0.6, slippagePct: 5, feeBps: 110 });
+    // Expected per-share = 0.6 × 0.989 = 0.5934; total = 59.34
+    expect(p.expectedPricePerShare).toBeCloseTo(0.5934, 4);
+    expect(p.expectedProceeds).toBeCloseTo(59.34, 2);
+    // Worst per-share = 0.6 × 0.95 × 0.989 = 0.563730; total ≈ 56.37
+    expect(p.worstPricePerShare).toBeCloseTo(0.56373, 4);
+    expect(p.worstCaseProceeds).toBeCloseTo(56.373, 2);
+  });
+
+  it('clamps worst-case to zero when slippage exceeds price', () => {
+    const p = previewMarketSell({ shares: 100, markPrice: 0.1, slippagePct: 20, feeBps: 110 });
+    expect(p.worstCaseProceeds).toBeGreaterThanOrEqual(0);
   });
 });

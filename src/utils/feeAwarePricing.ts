@@ -214,6 +214,20 @@ export interface SellOutcomeEstimate {
   proceeds: number;
 }
 
+/**
+ * Convert a UI-friendly slippage percent (e.g. 5 or "5.5") into the bps value
+ * the on-chain `placeMarketBuy` / `placeMarketSell` selectors expect. Caps at
+ * the protocol's `MAX_SLIPPAGE_BPS` (2000 = 20%) to mirror the on-chain bound.
+ */
+export const MAX_SLIPPAGE_BPS = 2000n;
+
+export function slippagePctToBps(pct: number | string): bigint {
+  const n = typeof pct === 'string' ? parseFloat(pct) : pct;
+  if (!Number.isFinite(n) || n < 0) return 0n;
+  const bps = BigInt(Math.round(n * 100));
+  return bps > MAX_SLIPPAGE_BPS ? MAX_SLIPPAGE_BPS : bps;
+}
+
 export function estimateSellFromShares(shares: number, pricePerShare: number): SellOutcomeEstimate {
   const safeShares = Math.max(0, Number.isFinite(shares) ? shares : 0);
   const safePrice = Math.max(0, Number.isFinite(pricePerShare) ? pricePerShare : 0);
@@ -221,5 +235,111 @@ export function estimateSellFromShares(shares: number, pricePerShare: number): S
     shares: safeShares,
     avgPrice: safePrice,
     proceeds: safeShares * safePrice,
+  };
+}
+
+// ============================================================================
+// Pre-trade preview for market orders (slippage + fees combined)
+// ============================================================================
+
+export interface MarketBuyPreview {
+  /** Expected per-share cost in $ (mark price + fees, no slippage applied). */
+  expectedPricePerShare: number;
+  /** Worst-case per-share cost in $ (mark price + slippage + fees). */
+  worstPricePerShare: number;
+  /** Shares acquired at the expected price. */
+  expectedShares: number;
+  /** Shares acquired in the worst case (slippage fully consumed). */
+  worstCaseShares: number;
+  /** Total payout at the expected shares (= shares × $1). */
+  expectedPayout: number;
+  /** Profit at the expected shares (= payout − amount). */
+  expectedProfit: number;
+}
+
+/**
+ * UI preview for a market BUY. Given an `amount` to spend, a resolved mark
+ * price (e.g. from `getMarkPriceSimple`), the user's `slippagePct`, and the
+ * market's total fee bps (= protocol + venue + operator), returns expected /
+ * worst-case shares + payout + profit.
+ *
+ * The contract enforces that no fill happens above
+ * `markPrice × (1 + slippagePct/100) × (1 + feeBps/10000)` per share, so the
+ * worst-case shares is the lower bound on what the user will receive.
+ */
+export function previewMarketBuy(params: {
+  amount: number;
+  markPrice: number;
+  slippagePct: number;
+  feeBps: number | bigint;
+}): MarketBuyPreview {
+  const amount = Math.max(0, Number.isFinite(params.amount) ? params.amount : 0);
+  const mark = Math.max(0, Number.isFinite(params.markPrice) ? params.markPrice : 0);
+  const slipFrac = Math.max(0, Number.isFinite(params.slippagePct) ? params.slippagePct : 0) / 100;
+  const feeBpsNum = typeof params.feeBps === 'bigint' ? Number(params.feeBps) : params.feeBps;
+  const feeMul = 1 + feeBpsNum / 10_000;
+
+  if (mark <= 0 || amount <= 0) {
+    return {
+      expectedPricePerShare: 0,
+      worstPricePerShare: 0,
+      expectedShares: 0,
+      worstCaseShares: 0,
+      expectedPayout: 0,
+      expectedProfit: -amount,
+    };
+  }
+
+  const expectedPricePerShare = mark * feeMul;
+  const worstPricePerShare = mark * (1 + slipFrac) * feeMul;
+  const expectedShares = amount / expectedPricePerShare;
+  const worstCaseShares = amount / worstPricePerShare;
+  const expectedPayout = expectedShares; // 1 share → $1 on win
+
+  return {
+    expectedPricePerShare,
+    worstPricePerShare,
+    expectedShares,
+    worstCaseShares,
+    expectedPayout,
+    expectedProfit: expectedPayout - amount,
+  };
+}
+
+export interface MarketSellPreview {
+  /** Expected per-share payout in $ (mark price − fees). */
+  expectedPricePerShare: number;
+  /** Worst-case per-share payout in $ (mark × (1 − slip) − fees). */
+  worstPricePerShare: number;
+  /** Expected total net proceeds. */
+  expectedProceeds: number;
+  /** Worst-case total net proceeds. */
+  worstCaseProceeds: number;
+}
+
+/**
+ * UI preview for a market SELL. Given `shares` to sell, a resolved mark price,
+ * `slippagePct`, and `feeBps`, returns expected / worst-case net proceeds.
+ */
+export function previewMarketSell(params: {
+  shares: number;
+  markPrice: number;
+  slippagePct: number;
+  feeBps: number | bigint;
+}): MarketSellPreview {
+  const shares = Math.max(0, Number.isFinite(params.shares) ? params.shares : 0);
+  const mark = Math.max(0, Number.isFinite(params.markPrice) ? params.markPrice : 0);
+  const slipFrac = Math.max(0, Number.isFinite(params.slippagePct) ? params.slippagePct : 0) / 100;
+  const feeBpsNum = typeof params.feeBps === 'bigint' ? Number(params.feeBps) : params.feeBps;
+  const feeNet = 1 - feeBpsNum / 10_000;
+
+  const expectedPricePerShare = mark * feeNet;
+  const worstPricePerShare = mark * (1 - slipFrac) * feeNet;
+
+  return {
+    expectedPricePerShare,
+    worstPricePerShare,
+    expectedProceeds: shares * expectedPricePerShare,
+    worstCaseProceeds: shares * Math.max(0, worstPricePerShare),
   };
 }

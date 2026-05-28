@@ -16,6 +16,7 @@ import {
   createExpiry,
 } from '../utils/conversions';
 import { getCachedTokenDecimals, parseTokenAmount } from '../utils/decimals';
+import { slippagePctToBps } from '../utils/feeAwarePricing';
 import type { Address } from 'viem';
 
 export class TradeModule extends BaseModule {
@@ -140,19 +141,20 @@ export class TradeModule extends BaseModule {
   }
 
   /**
-   * Execute a market order (FOK or FAK)
+   * Place a multi-path market BUY. Walks the same-outcome SELL book and the
+   * opposite-outcome BUY book (via mint-fill) in parallel, taking the cheapest
+   * crossable path per step. Slippage is anchored to the on-chain mark price
+   * at facet entry — no caller-supplied price.
    *
-   * @param params.marketId - The market to buy on
-   * @param params.outcomeId - Which outcome to buy (0=YES, 1=NO)
-   * @param params.collateralAmount - Amount of collateral to spend
-   * @param params.maxPriceTick - Maximum price tick willing to pay (slippage protection)
-   * @param params.orderType - 0=FOK (Fill-Or-Kill), 1=FAK (Fill-And-Kill)
+   * @param params.budget       - Collateral budget the taker is willing to spend (in token decimals)
+   * @param params.slippageBps  - Maximum slippage above the resolved mark tick (bps; max 2000 = 20%)
+   * @param params.orderType    - 0=FOK (Fill-Or-Kill), 1=FAK (Fill-And-Kill)
    */
-  async placeMarketOrder(params: {
+  async placeMarketBuy(params: {
     marketId: bigint;
     outcomeId: bigint;
-    collateralAmount: bigint;
-    maxPriceTick: bigint;
+    budget: bigint;
+    slippageBps: bigint;
     orderType: number; // 0 = FOK, 1 = FAK
   }) {
     const wallet = this.walletClient;
@@ -161,12 +163,12 @@ export class TradeModule extends BaseModule {
     const { request } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,
       abi: MarketOrdersFacetABI,
-      functionName: 'placeMarketOrder',
+      functionName: 'placeMarketBuy',
       args: [
         params.marketId,
         params.outcomeId,
-        params.collateralAmount,
-        params.maxPriceTick,
+        params.budget,
+        params.slippageBps,
         params.orderType,
       ],
       account,
@@ -176,19 +178,20 @@ export class TradeModule extends BaseModule {
   }
 
   /**
-   * Execute a market order with simple string input (recommended for frontends)
-   * @param params.amount - Collateral amount as decimal string (e.g., "10.5")
-   * @param params.maxPrice - Maximum price as decimal string (e.g., "0.85")
-   * @param params.orderType - 'FOK' or 'FAK' (default: 'FAK')
+   * Place a market BUY with frontend-friendly string inputs.
+   *
+   * @param params.amount       - Collateral budget as decimal string (e.g., "10.5")
+   * @param params.slippagePct  - Slippage tolerance as percent (number or string;
+   *                              "5" or 5 → 500 bps). Capped at 20.
+   * @param params.orderType    - 'FOK' or 'FAK' (default: 'FAK')
    */
-  async placeMarketOrderSimple(params: {
+  async placeMarketBuySimple(params: {
     marketId: bigint;
     outcomeId: bigint;
     amount: string;
-    maxPrice: string;
+    slippagePct: number | string;
     orderType?: 'FOK' | 'FAK';
   }) {
-    // Get market trading data to determine collateral token
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const tradingData: any = await this.publicClient.readContract({
       address: this.config.diamondAddress,
@@ -199,41 +202,41 @@ export class TradeModule extends BaseModule {
 
     const collateralToken = tradingData.collateralToken as Address;
     const decimals = await getCachedTokenDecimals(this.publicClient, collateralToken);
-    const collateralAmount = parseTokenAmount(params.amount, decimals);
-    const maxPriceTick = priceToTick(params.maxPrice);
+    const budget = parseTokenAmount(params.amount, decimals);
+    const slippageBps = slippagePctToBps(params.slippagePct);
     const orderType = params.orderType === 'FOK' ? 0 : 1;
 
-    return this.placeMarketOrder({
+    return this.placeMarketBuy({
       marketId: params.marketId,
       outcomeId: params.outcomeId,
-      collateralAmount,
-      maxPriceTick,
+      budget,
+      slippageBps,
       orderType,
     });
   }
 
   /**
-   * Preview a market order (simulate transaction)
+   * Simulate a market BUY (returns the would-be on-chain result without
+   * broadcasting). Useful for dry-runs and preflight checks.
    */
-  async previewMarketOrder(params: {
+  async previewMarketBuy(params: {
     marketId: bigint;
     outcomeId: bigint;
-    collateralAmount: bigint;
-    maxPriceTick: bigint;
+    budget: bigint;
+    slippageBps: bigint;
     orderType: number;
   }) {
-    const wallet = this.walletClient;
     const account = await this.getSignerAccount();
 
     const { result } = await this.publicClient.simulateContract({
       address: this.config.diamondAddress,
       abi: MarketOrdersFacetABI,
-      functionName: 'placeMarketOrder',
+      functionName: 'placeMarketBuy',
       args: [
         params.marketId,
         params.outcomeId,
-        params.collateralAmount,
-        params.maxPriceTick,
+        params.budget,
+        params.slippageBps,
         params.orderType,
       ],
       account,
@@ -275,19 +278,20 @@ export class TradeModule extends BaseModule {
   }
 
   /**
-   * Execute a market sell order (FOK or FAK)
+   * Place a multi-path market SELL. Walks the same-outcome BUY book and the
+   * opposite-outcome SELL book (via merge-fill) in parallel, taking the path
+   * with the highest net taker tick per step. Slippage anchored to the on-chain
+   * mark price.
    *
-   * @param params.marketId - The market to sell on
-   * @param params.outcomeId - Which outcome to sell (0=YES, 1=NO)
-   * @param params.tokenAmount - Amount of outcome tokens to sell
-   * @param params.minPriceTick - Minimum price tick willing to accept (slippage protection)
-   * @param params.orderType - 0=FOK (Fill-Or-Kill), 1=FAK (Fill-And-Kill)
+   * @param params.tokenAmount  - Outcome tokens to sell (in token decimals)
+   * @param params.slippageBps  - Maximum slippage below the resolved mark tick (bps; max 2000)
+   * @param params.orderType    - 0=FOK, 1=FAK
    */
   async placeMarketSell(params: {
     marketId: bigint;
     outcomeId: bigint;
     tokenAmount: bigint;
-    minPriceTick: bigint;
+    slippageBps: bigint;
     orderType: number; // 0 = FOK, 1 = FAK
   }) {
     const wallet = this.walletClient;
@@ -301,7 +305,7 @@ export class TradeModule extends BaseModule {
         params.marketId,
         params.outcomeId,
         params.tokenAmount,
-        params.minPriceTick,
+        params.slippageBps,
         params.orderType,
       ],
       account,
@@ -311,20 +315,19 @@ export class TradeModule extends BaseModule {
   }
 
   /**
-   * Execute a market sell order with simple string inputs (recommended for frontends)
-   * @param params.amount - Token amount as decimal string (e.g., "100.5")
-   * @param params.minPrice - Minimum price as decimal string (e.g., "0.70")
-   * @param params.orderType - 'FOK' or 'FAK' (default: 'FAK')
+   * Place a market SELL with frontend-friendly string inputs.
+   *
+   * @param params.amount      - Token amount as decimal string (e.g., "100.5")
+   * @param params.slippagePct - Slippage tolerance percent (max 20)
+   * @param params.orderType   - 'FOK' or 'FAK' (default: 'FAK')
    */
   async placeMarketSellSimple(params: {
     marketId: bigint;
     outcomeId: bigint;
     amount: string;
-    minPrice: string;
+    slippagePct: number | string;
     orderType?: 'FOK' | 'FAK';
   }) {
-    // Get market trading data to determine collateral token decimals
-    // (outcome tokens use same decimals as collateral)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const tradingData: any = await this.publicClient.readContract({
       address: this.config.diamondAddress,
@@ -336,29 +339,28 @@ export class TradeModule extends BaseModule {
     const collateralToken = tradingData.collateralToken as Address;
     const decimals = await getCachedTokenDecimals(this.publicClient, collateralToken);
     const tokenAmount = parseTokenAmount(params.amount, decimals);
-    const minPriceTick = priceToTick(params.minPrice);
+    const slippageBps = slippagePctToBps(params.slippagePct);
     const orderType = params.orderType === 'FOK' ? 0 : 1;
 
     return this.placeMarketSell({
       marketId: params.marketId,
       outcomeId: params.outcomeId,
       tokenAmount,
-      minPriceTick,
+      slippageBps,
       orderType,
     });
   }
 
   /**
-   * Preview a market sell order (simulate transaction)
+   * Simulate a market SELL.
    */
   async previewMarketSell(params: {
     marketId: bigint;
     outcomeId: bigint;
     tokenAmount: bigint;
-    minPriceTick: bigint;
+    slippageBps: bigint;
     orderType: number;
   }) {
-    const wallet = this.walletClient;
     const account = await this.getSignerAccount();
 
     const { result } = await this.publicClient.simulateContract({
@@ -369,7 +371,7 @@ export class TradeModule extends BaseModule {
         params.marketId,
         params.outcomeId,
         params.tokenAmount,
-        params.minPriceTick,
+        params.slippageBps,
         params.orderType,
       ],
       account,
@@ -379,9 +381,9 @@ export class TradeModule extends BaseModule {
   }
 
   /**
-   * Watch for MarketOrderExecuted events
+   * Watch for MarketOrderBuy events emitted by market BUY trades.
    */
-  watchMarketOrder(
+  watchMarketBuy(
     marketId: bigint,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onLogs: (logs: any[]) => void
@@ -389,14 +391,14 @@ export class TradeModule extends BaseModule {
     return this.publicClient.watchContractEvent({
       address: this.config.diamondAddress,
       abi: MarketOrdersFacetABI,
-      eventName: 'MarketOrderExecuted',
+      eventName: 'MarketOrderBuy',
       args: { marketId },
       onLogs,
     });
   }
 
   /**
-   * Watch for MarketSellExecuted events
+   * Watch for MarketOrderSell events emitted by market SELL trades.
    */
   watchMarketSell(
     marketId: bigint,
@@ -406,7 +408,7 @@ export class TradeModule extends BaseModule {
     return this.publicClient.watchContractEvent({
       address: this.config.diamondAddress,
       abi: MarketOrdersFacetABI,
-      eventName: 'MarketSellExecuted',
+      eventName: 'MarketOrderSell',
       args: { marketId },
       onLogs,
     });

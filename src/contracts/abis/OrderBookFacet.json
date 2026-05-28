@@ -148,6 +148,35 @@
   },
   {
     "type": "function",
+    "name": "getImpliedTopOfBook",
+    "inputs": [
+      {
+        "name": "marketId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "outcomeId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "impliedBid",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "impliedAsk",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "getMarkPrice",
     "inputs": [
       {

@@ -43,25 +43,49 @@ describe('TradeModule', () => {
     mockWriteContract.mockResolvedValue('0xtxhash');
   });
 
-  it('should preview market order', async () => {
-    const mockResult = { result: 'success' };
+  it('should preview market BUY via the new multi-path facet selector', async () => {
+    const mockResult = { tokensReceived: 100n, collateralSpent: 50n, avgPrice: 0n, unusedCollateral: 0n };
     mockSimulateContract.mockResolvedValue({ result: mockResult });
 
     const params = {
       marketId: 1n,
       outcomeId: 0n,
-      collateralAmount: 100n,
-      maxPriceTick: 50n,
+      budget: 100n,
+      slippageBps: 500n,
       orderType: 1, // FAK
     };
 
-    const result = await module.previewMarketOrder(params);
+    const result = await module.previewMarketBuy(params);
 
     expect(mockSimulateContract).toHaveBeenCalledWith({
       address: config.diamondAddress,
       abi: MarketOrdersFacetABI,
-      functionName: 'placeMarketOrder',
-      args: [params.marketId, params.outcomeId, params.collateralAmount, params.maxPriceTick, params.orderType],
+      functionName: 'placeMarketBuy',
+      args: [params.marketId, params.outcomeId, params.budget, params.slippageBps, params.orderType],
+      account: '0xUser',
+    });
+    expect(result).toEqual(mockResult);
+  });
+
+  it('should preview market SELL via the new multi-path facet selector', async () => {
+    const mockResult = { tokensSold: 100n, collateralReceived: 49n, avgPrice: 0n, unsoldTokens: 0n };
+    mockSimulateContract.mockResolvedValue({ result: mockResult });
+
+    const params = {
+      marketId: 1n,
+      outcomeId: 0n,
+      tokenAmount: 100n,
+      slippageBps: 500n,
+      orderType: 1,
+    };
+
+    const result = await module.previewMarketSell(params);
+
+    expect(mockSimulateContract).toHaveBeenCalledWith({
+      address: config.diamondAddress,
+      abi: MarketOrdersFacetABI,
+      functionName: 'placeMarketSell',
+      args: [params.marketId, params.outcomeId, params.tokenAmount, params.slippageBps, params.orderType],
       account: '0xUser',
     });
     expect(result).toEqual(mockResult);

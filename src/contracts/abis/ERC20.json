@@ -3,19 +3,14 @@
     "type": "constructor",
     "inputs": [
       {
-        "name": "_name",
+        "name": "name_",
         "type": "string",
         "internalType": "string"
       },
       {
-        "name": "_symbol",
+        "name": "symbol_",
         "type": "string",
         "internalType": "string"
-      },
-      {
-        "name": "_decimals",
-        "type": "uint8",
-        "internalType": "uint8"
       }
     ],
     "stateMutability": "nonpayable"
@@ -25,12 +20,12 @@
     "name": "allowance",
     "inputs": [
       {
-        "name": "",
+        "name": "owner",
         "type": "address",
         "internalType": "address"
       },
       {
-        "name": "",
+        "name": "spender",
         "type": "address",
         "internalType": "address"
       }
@@ -73,7 +68,7 @@
     "name": "balanceOf",
     "inputs": [
       {
-        "name": "",
+        "name": "account",
         "type": "address",
         "internalType": "address"
       }
@@ -102,20 +97,50 @@
   },
   {
     "type": "function",
-    "name": "mint",
+    "name": "decreaseAllowance",
     "inputs": [
       {
-        "name": "to",
+        "name": "spender",
         "type": "address",
         "internalType": "address"
       },
       {
-        "name": "amount",
+        "name": "subtractedValue",
         "type": "uint256",
         "internalType": "uint256"
       }
     ],
-    "outputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "increaseAllowance",
+    "inputs": [
+      {
+        "name": "spender",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "addedValue",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
     "stateMutability": "nonpayable"
   },
   {
