@@ -202,6 +202,80 @@ export const GET_TRADES = gql`
   }
 `;
 
+/**
+ * Unified market activity feed: Trade entities (all kinds) UNION MergeFill
+ * Fill entities, dual-cursor paginated by timestamp.
+ *
+ * Why two cursors: merges are a separate stream with very different density
+ * than trades. A single shared cursor would over-skip the sparser stream and
+ * miss merges. Each stream advances independently — clients pass back the
+ * timestamp of the last item received from each stream as the next cursor.
+ *
+ * Uses `timestamp_lte` (not `_lt`) so boundary items at the exact cursor
+ * timestamp aren't skipped — clients should dedupe by entity id, which
+ * costs at most one duplicated row per page (the cursor item itself).
+ *
+ * Pass `9999999999` (year 2286) as sentinel for the first page to avoid
+ * The Graph's "_lte: null matches nothing" behavior.
+ */
+export const GET_MARKET_ACTIVITY = gql`
+  query GetMarketActivity(
+    $marketId: BigInt!
+    $first: Int!
+    $tradeBefore: BigInt!
+    $fillBefore: BigInt!
+  ) {
+    trades(
+      where: {
+        market_: { marketId: $marketId }
+        timestamp_lte: $tradeBefore
+      }
+      first: $first
+      orderBy: timestamp
+      orderDirection: desc
+    ) {
+      id
+      outcome
+      tick
+      amount
+      cost
+      tradeType
+      buyTrader {
+        id
+      }
+      sellTrader {
+        id
+      }
+      avgPrice
+      timestamp
+      blockNumber
+      transactionHash
+    }
+    mergeFills: fills(
+      where: {
+        market_: { marketId: $marketId }
+        tradeType: MergeFill
+        timestamp_lte: $fillBefore
+      }
+      first: $first
+      orderBy: timestamp
+      orderDirection: desc
+    ) {
+      id
+      outcome
+      tick
+      amount
+      cost
+      trader {
+        id
+      }
+      timestamp
+      blockNumber
+      transactionHash
+    }
+  }
+`;
+
 export const GET_CHART_TRADES = gql`
   query GetChartTrades(
     $marketId: BigInt!

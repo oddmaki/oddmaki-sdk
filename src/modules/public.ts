@@ -44,6 +44,7 @@ import {
   GET_TRADER_VENUE_FILLS,
   GET_VENUE_LEADERBOARD,
   GET_MARKET_TOP_HOLDERS,
+  GET_MARKET_ACTIVITY,
 } from '../subgraph/queries';
 
 export class PublicModule extends BaseModule {
@@ -668,6 +669,45 @@ export class PublicModule extends BaseModule {
     return this.subgraph.request<any>(GET_MARKET_TOP_HOLDERS, {
       marketId: params.marketId,
       first: params.first || 20,
+    });
+  }
+
+  /**
+   * Get a market's activity feed as a UNION of Trade entities and MergeFill
+   * Fill entities, ordered by timestamp desc.
+   *
+   * Trades cover regular fills (`MarketOrder`, `OrderFill`, `MintFill`).
+   * MergeFills surface position exits that the indexer intentionally does
+   * NOT write Trade entities for (merges aren't market trades — they don't
+   * touch market volume — but they ARE real user activity worth surfacing).
+   *
+   * Dual-cursor pagination: each stream advances independently via its own
+   * `before` cursor, so the sparser MergeFill stream isn't over-skipped by
+   * dense trade activity. Cursors use `timestamp_lte` (boundary-inclusive)
+   * so no rows are missed at page boundaries; callers should dedupe by
+   * entity id, which removes the at-most-one duplicate per page.
+   *
+   * @param params.tradeBefore - Timestamp cursor for the trades stream. Omit
+   *   on the first page; pass the timestamp of the last received Trade for
+   *   subsequent pages.
+   * @param params.fillBefore - Same idea for the MergeFill stream.
+   * @param params.first - Page size per stream (default 50).
+   */
+  async getMarketActivity(params: {
+    marketId: bigint;
+    tradeBefore?: bigint;
+    fillBefore?: bigint;
+    first?: number;
+  }) {
+    // Sentinel for "no cursor yet": ~year 2286. Avoids The Graph's
+    // "filter with null matches nothing" behavior on the first page.
+    const sentinel = '9999999999';
+
+    return this.subgraph.request<any>(GET_MARKET_ACTIVITY, {
+      marketId: params.marketId.toString(),
+      first: params.first || 50,
+      tradeBefore: params.tradeBefore?.toString() ?? sentinel,
+      fillBefore: params.fillBefore?.toString() ?? sentinel,
     });
   }
 
