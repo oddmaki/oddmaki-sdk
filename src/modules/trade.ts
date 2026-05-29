@@ -16,7 +16,14 @@ import {
   createExpiry,
 } from '../utils/conversions';
 import { getCachedTokenDecimals, parseTokenAmount } from '../utils/decimals';
-import { slippagePctToBps } from '../utils/feeAwarePricing';
+import {
+  slippagePctToBps,
+  previewMarketBuy as previewMarketBuyMath,
+  previewMarketSell as previewMarketSellMath,
+  OPERATOR_FEE_BPS,
+  type MarketBuyPreview,
+  type MarketSellPreview,
+} from '../utils/feeAwarePricing';
 import type { Address } from 'viem';
 
 export class TradeModule extends BaseModule {
@@ -761,5 +768,172 @@ export class TradeModule extends BaseModule {
       cancelOrderIds: params.cancelOrderIds,
       newOrders,
     });
+  }
+
+  // ============================================================================
+  // Pre-flight composing helpers
+  // ============================================================================
+
+  /**
+   * One-call preview for a market BUY. Reads tickSize + fees + implied top-of-book
+   * via parallel RPC, then composes the SDK's `previewMarketBuy` math against the
+   * **implied ask** (which is what the take service anchors against on-chain).
+   *
+   * No subgraph dependency — pure RPC. Use this in trade-panel UIs to render the
+   * "Buy Yes / Buy No XX¢" labels + "To Win" / "Avg Price" / "Worst case" rows.
+   *
+   * @param params.amount       Dollar amount the user is spending (decimal string).
+   * @param params.slippagePct  Slippage tolerance percent (0–20). Capped on-chain
+   *                            at {@link slippagePctToBps}'s MAX_SLIPPAGE_BPS.
+   *
+   * @returns `bestAsk` decimal price (= the displayed "Buy at XX¢" price);
+   *          `isLiquid` true iff implied ask > 0 (Trade button can enable);
+   *          plus the full {@link MarketBuyPreview} math.
+   */
+  async previewMarketBuySimple(params: {
+    marketId: bigint;
+    outcomeId: bigint;
+    amount: string;
+    slippagePct: number | string;
+  }): Promise<MarketBuyPreview & { bestAsk: string | null; isLiquid: boolean }> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tradingData: any = await this.publicClient.readContract({
+      address: this.config.diamondAddress,
+      abi: MarketsFacetABI,
+      functionName: 'getMarketTradingData',
+      args: [params.marketId],
+    });
+    const tickSize = BigInt(tradingData.tickSize);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [registry, impliedRaw]: [any, any] = await Promise.all([
+      this.publicClient.readContract({
+        address: this.config.diamondAddress,
+        abi: MarketsFacetABI,
+        functionName: 'getMarketRegistryData',
+        args: [params.marketId],
+      }),
+      this.publicClient.readContract({
+        address: this.config.diamondAddress,
+        abi: OrderBookFacetABI,
+        functionName: 'getImpliedTopOfBook',
+        args: [params.marketId, params.outcomeId],
+      }),
+    ]);
+
+    const protocolFeeBps = BigInt(registry.protocolFeeBps ?? 0);
+    const venueFeeBps = BigInt(registry.venueFeeBps ?? 0);
+    const totalFeeBps = protocolFeeBps + venueFeeBps + OPERATOR_FEE_BPS;
+
+    const impliedAsk = impliedRaw[1] as bigint;
+    const bestAsk =
+      impliedAsk > BigInt(0)
+        ? (Number(impliedAsk * tickSize) / 1e18).toFixed(2)
+        : null;
+    const isLiquid = bestAsk != null;
+
+    const slipPct =
+      typeof params.slippagePct === 'string'
+        ? parseFloat(params.slippagePct)
+        : params.slippagePct;
+    const amountNum = parseFloat(params.amount);
+
+    if (!isLiquid) {
+      return {
+        bestAsk: null,
+        isLiquid: false,
+        expectedPricePerShare: 0,
+        worstPricePerShare: 0,
+        expectedShares: 0,
+        worstCaseShares: 0,
+        expectedPayout: 0,
+        expectedProfit: -amountNum,
+      };
+    }
+
+    const math = previewMarketBuyMath({
+      amount: amountNum,
+      markPrice: parseFloat(bestAsk!),
+      slippagePct: slipPct,
+      feeBps: totalFeeBps,
+    });
+
+    return { bestAsk, isLiquid, ...math };
+  }
+
+  /**
+   * One-call preview for a market SELL. Mirrors {@link previewMarketBuySimple} for
+   * sell-side flows. Anchors against the implied bid (richest payout for taker).
+   *
+   * @param params.shares      Outcome tokens the user is selling (decimal string).
+   * @param params.slippagePct Slippage tolerance percent.
+   */
+  async previewMarketSellSimple(params: {
+    marketId: bigint;
+    outcomeId: bigint;
+    shares: string;
+    slippagePct: number | string;
+  }): Promise<MarketSellPreview & { bestBid: string | null; isLiquid: boolean }> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tradingData: any = await this.publicClient.readContract({
+      address: this.config.diamondAddress,
+      abi: MarketsFacetABI,
+      functionName: 'getMarketTradingData',
+      args: [params.marketId],
+    });
+    const tickSize = BigInt(tradingData.tickSize);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [registry, impliedRaw]: [any, any] = await Promise.all([
+      this.publicClient.readContract({
+        address: this.config.diamondAddress,
+        abi: MarketsFacetABI,
+        functionName: 'getMarketRegistryData',
+        args: [params.marketId],
+      }),
+      this.publicClient.readContract({
+        address: this.config.diamondAddress,
+        abi: OrderBookFacetABI,
+        functionName: 'getImpliedTopOfBook',
+        args: [params.marketId, params.outcomeId],
+      }),
+    ]);
+
+    const protocolFeeBps = BigInt(registry.protocolFeeBps ?? 0);
+    const venueFeeBps = BigInt(registry.venueFeeBps ?? 0);
+    const totalFeeBps = protocolFeeBps + venueFeeBps + OPERATOR_FEE_BPS;
+
+    const impliedBid = impliedRaw[0] as bigint;
+    const bestBid =
+      impliedBid > BigInt(0)
+        ? (Number(impliedBid * tickSize) / 1e18).toFixed(2)
+        : null;
+    const isLiquid = bestBid != null;
+
+    const slipPct =
+      typeof params.slippagePct === 'string'
+        ? parseFloat(params.slippagePct)
+        : params.slippagePct;
+    const sharesNum = parseFloat(params.shares);
+
+    if (!isLiquid) {
+      return {
+        bestBid: null,
+        isLiquid: false,
+        expectedPricePerShare: 0,
+        worstPricePerShare: 0,
+        expectedProceeds: 0,
+        worstCaseProceeds: 0,
+      };
+    }
+
+    const math = previewMarketSellMath({
+      shares: sharesNum,
+      markPrice: parseFloat(bestBid!),
+      slippagePct: slipPct,
+      feeBps: totalFeeBps,
+    });
+
+    return { bestBid, isLiquid, ...math };
   }
 }
