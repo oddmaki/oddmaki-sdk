@@ -80,6 +80,7 @@ export const GET_MARKETS = gql`
       }
       tags
       metadataURI
+      isDpmMarket
     }
   }
 `;
@@ -129,6 +130,7 @@ export const GET_MARKETS_WITH_PRICING = gql`
       uniqueTraders
       tags
       metadataURI
+      isDpmMarket
     }
   }
 `;
@@ -161,6 +163,7 @@ export const GET_MARKET = gql`
       uniqueTraders
       tags
       metadataURI
+      isDpmMarket
       createdAt
       creator {
         id
@@ -649,6 +652,7 @@ export const GET_UNIFIED_MARKET_FEED = gql`
       uniqueTraders
       tags
       metadataURI
+      isDpmMarket
       createdAt
       venue {
         id
@@ -816,6 +820,7 @@ export const GET_UNIFIED_MARKET_FEED_BY_VOLUME = gql`
       uniqueTraders
       tags
       metadataURI
+      isDpmMarket
       createdAt
       venue {
         id
@@ -968,6 +973,7 @@ export const GET_ALL_MARKETS_FEED = gql`
       totalOrders
       uniqueTraders
       metadataURI
+      isDpmMarket
       createdAt
       venue {
         id
@@ -1118,6 +1124,7 @@ export const GET_ALL_MARKETS_FEED_BY_VOLUME = gql`
       totalOrders
       uniqueTraders
       metadataURI
+      isDpmMarket
       createdAt
       venue {
         id
