@@ -10,6 +10,7 @@ export * from './modules/token';
 export * from './modules/uma';
 export * from './modules/accessControl';
 export * from './modules/priceMarket';
+export * from './modules/dpm';
 export * from './contracts';
 export * from './subgraph/client';
 export * from './subgraph/queries';

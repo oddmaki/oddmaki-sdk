@@ -16,6 +16,8 @@ import MetadataFacetABI from './abis/MetadataFacet.json';
 import PriceMarketFacetABI from './abis/PriceMarketFacet.json';
 import PythResolutionFacetABI from './abis/PythResolutionFacet.json';
 import BatchOrdersFacetABI from './abis/BatchOrdersFacet.json';
+import DpmMarketFacetABI from './abis/DpmMarketFacet.json';
+import DpmTradingFacetABI from './abis/DpmTradingFacet.json';
 
 // Standalone contract ABIs
 import WhitelistAccessControlABI from './abis/WhitelistAccessControl.json';
@@ -44,6 +46,8 @@ export {
   PriceMarketFacetABI,
   PythResolutionFacetABI,
   BatchOrdersFacetABI,
+  DpmMarketFacetABI,
+  DpmTradingFacetABI,
   // Standalone
   WhitelistAccessControlABI,
   // External

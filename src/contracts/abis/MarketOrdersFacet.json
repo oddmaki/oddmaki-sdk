@@ -627,6 +627,11 @@
   },
   {
     "type": "error",
+    "name": "MarketIsDpm",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "MarketNotActive",
     "inputs": []
   },
@@ -638,11 +643,6 @@
   {
     "type": "error",
     "name": "NoLiquidityAvailable",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "NoReferencePrice",
     "inputs": []
   },
   {

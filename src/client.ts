@@ -10,6 +10,7 @@ import { TokenModule } from './modules/token';
 import { UmaModule } from './modules/uma';
 import { AccessControlModule } from './modules/accessControl';
 import { PriceMarketModule } from './modules/priceMarket';
+import { DpmModule } from './modules/dpm';
 
 export class OddMakiClient {
   public readonly config: OddMakiClientConfig;
@@ -21,6 +22,7 @@ export class OddMakiClient {
   public readonly uma: UmaModule;
   public readonly accessControl: AccessControlModule;
   public readonly priceMarket: PriceMarketModule;
+  public readonly dpm: DpmModule;
 
   constructor(config: OddMakiClientConfig) {
     this.config = config;
@@ -32,6 +34,7 @@ export class OddMakiClient {
     this.uma = new UmaModule(config);
     this.accessControl = new AccessControlModule(config);
     this.priceMarket = new PriceMarketModule(config);
+    this.dpm = new DpmModule(config);
   }
 }
 

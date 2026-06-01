@@ -1756,3 +1756,161 @@ export const GET_MARKET_TOP_HOLDERS = gql`
     }
   }
 `;
+
+// ============================================
+// DPM (Dynamic Pari-Mutuel) Markets
+// ============================================
+
+export const GET_DPM_MARKET = gql`
+  query GetDpmMarket($id: ID!) {
+    dpmMarket(id: $id) {
+      id
+      outcomeCount
+      openTime
+      closeTime
+      poolInitialized
+      seededAt
+      resolved
+      winningOutcome
+      resolvedAt
+      totalCollateral
+      totalShares
+      totalIntent
+      totalClaimed
+      uniqueTraders
+      createdAt
+      updatedAt
+      market {
+        id
+        marketId
+        question
+        outcomes
+        status
+        collateralToken
+        conditionId
+        tags
+        metadataURI
+      }
+      outcomes(orderBy: outcomeIndex, orderDirection: asc) {
+        outcomeIndex
+        label
+        conditionId
+        collateral
+        shares
+        intentTotal
+        isWinner
+        addedLate
+      }
+    }
+  }
+`;
+
+export const GET_DPM_MARKETS = gql`
+  query GetDpmMarkets($first: Int = 100, $skip: Int = 0) {
+    dpmMarkets(
+      first: $first
+      skip: $skip
+      orderBy: createdAt
+      orderDirection: desc
+    ) {
+      id
+      outcomeCount
+      openTime
+      closeTime
+      poolInitialized
+      resolved
+      winningOutcome
+      totalCollateral
+      totalShares
+      uniqueTraders
+      createdAt
+      market {
+        id
+        marketId
+        question
+        outcomes
+        status
+        collateralToken
+        tags
+        venue {
+          id
+          venueId
+        }
+      }
+      outcomes(orderBy: outcomeIndex, orderDirection: asc) {
+        outcomeIndex
+        label
+        collateral
+        shares
+      }
+    }
+  }
+`;
+
+export const GET_DPM_POSITIONS = gql`
+  query GetDpmPositions($marketId: String!, $first: Int = 100, $skip: Int = 0) {
+    dpmPositions(
+      where: { dpmMarket: $marketId }
+      first: $first
+      skip: $skip
+      orderBy: shares
+      orderDirection: desc
+    ) {
+      id
+      outcomeIndex
+      shares
+      intentStake
+      collateralIn
+      entryCount
+      claimed
+      payout
+      realizedPnL
+      firstSeenAt
+      lastUpdatedAt
+      trader {
+        id
+        address
+      }
+      outcome {
+        label
+      }
+    }
+  }
+`;
+
+export const GET_USER_DPM_POSITIONS = gql`
+  query GetUserDpmPositions($trader: String!, $first: Int = 100, $skip: Int = 0) {
+    dpmPositions(
+      where: { trader: $trader }
+      first: $first
+      skip: $skip
+      orderBy: lastUpdatedAt
+      orderDirection: desc
+    ) {
+      id
+      outcomeIndex
+      shares
+      intentStake
+      collateralIn
+      claimed
+      payout
+      realizedPnL
+      lastUpdatedAt
+      outcome {
+        label
+      }
+      dpmMarket {
+        id
+        resolved
+        winningOutcome
+        poolInitialized
+        market {
+          marketId
+          question
+          outcomes
+          status
+        }
+      }
+    }
+  }
+`;

@@ -45,6 +45,10 @@ import {
   GET_VENUE_LEADERBOARD,
   GET_MARKET_TOP_HOLDERS,
   GET_MARKET_ACTIVITY,
+  GET_DPM_MARKET,
+  GET_DPM_MARKETS,
+  GET_DPM_POSITIONS,
+  GET_USER_DPM_POSITIONS,
 } from '../subgraph/queries';
 
 export class PublicModule extends BaseModule {
@@ -116,6 +120,61 @@ export class PublicModule extends BaseModule {
       marketId: marketId.toString(),
     });
     return response.markets[0] || null;
+  }
+
+  /**
+   * Get a DPM (Dynamic Pari-Mutuel) market with its pool overlay: per-outcome
+   * M_i / N_i, lifecycle, resolution, and aggregate stats. Returns null if the
+   * market isn't a DPM market.
+   */
+  async getDpmMarket(marketId: bigint) {
+    const response = await this.subgraph.request<any>(GET_DPM_MARKET, {
+      id: marketId.toString(),
+    });
+    return response.dpmMarket || null;
+  }
+
+  /**
+   * List DPM markets, newest first.
+   */
+  async getDpmMarkets(params?: { first?: number; skip?: number }) {
+    const response = await this.subgraph.request<any>(GET_DPM_MARKETS, {
+      first: params?.first ?? 100,
+      skip: params?.skip ?? 0,
+    });
+    return response.dpmMarkets;
+  }
+
+  /**
+   * Get the holders (positions) of a DPM market, ranked by shares.
+   */
+  async getDpmPositions(params: {
+    marketId: bigint;
+    first?: number;
+    skip?: number;
+  }) {
+    const response = await this.subgraph.request<any>(GET_DPM_POSITIONS, {
+      marketId: params.marketId.toString(),
+      first: params.first ?? 100,
+      skip: params.skip ?? 0,
+    });
+    return response.dpmPositions;
+  }
+
+  /**
+   * Get a user's DPM positions across all markets (most recently updated first).
+   */
+  async getUserDpmPositions(params: {
+    trader: string;
+    first?: number;
+    skip?: number;
+  }) {
+    const response = await this.subgraph.request<any>(GET_USER_DPM_POSITIONS, {
+      trader: params.trader.toLowerCase(),
+      first: params.first ?? 100,
+      skip: params.skip ?? 0,
+    });
+    return response.dpmPositions;
   }
 
   /**

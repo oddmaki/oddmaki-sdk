@@ -144,6 +144,11 @@
   },
   {
     "type": "error",
+    "name": "MarketIsDpm",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "MarketNotActive",
     "inputs": []
   },
