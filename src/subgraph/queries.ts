@@ -1236,11 +1236,23 @@ export const GET_ALL_MARKETS_FEED_BY_VOLUME = gql`
 `;
 
 /**
- * Get a single PriceMarketSeries with all its member markets, ordered by closeTime.
- * Used by the market detail page to render the time-button navigation strip.
+ * Get a PriceMarketSeries plus a bounded window of member markets around a pivot
+ * close time, for the market detail page's time-button navigation strip.
+ *
+ * Instead of pulling the whole series (thousands of windows for a short
+ * interval), fetch only `$first` windows on each side of `$pivot`, ordered by
+ * closeTime. The client re-pivots on navigation, so walking forward loads the
+ * next batch. Windows come off the PriceMarket entity (which has closeTime),
+ * filtered to the series via the market relation.
  */
 export const GET_PRICE_MARKET_SERIES = gql`
-  query GetPriceMarketSeries($venueId: BigInt!, $seriesKey: String!) {
+  query GetPriceMarketSeries(
+    $venueId: BigInt!
+    $seriesKey: String!
+    $seriesId: String!
+    $pivot: BigInt!
+    $first: Int = 10
+  ) {
     priceMarketSeries(
       where: { venue_: { venueId: $venueId }, seriesKey: $seriesKey }
       first: 1
@@ -1264,21 +1276,47 @@ export const GET_PRICE_MARKET_SERIES = gql`
         venueId
         name
       }
-      markets(first: 1000, orderBy: marketId, orderDirection: asc) {
+    }
+    pastWindows: priceMarkets(
+      where: { market_: { priceSeries: $seriesId }, closeTime_lte: $pivot }
+      orderBy: closeTime
+      orderDirection: desc
+      first: $first
+    ) {
+      openTime
+      closeTime
+      resolved
+      outcome
+      finalPrice
+      strikePrice
+      market {
         id
         marketId
         question
         status
         resolvedOutcome
         outcomes
-        priceMarket {
-          openTime
-          closeTime
-          resolved
-          outcome
-          finalPrice
-          strikePrice
-        }
+      }
+    }
+    futureWindows: priceMarkets(
+      where: { market_: { priceSeries: $seriesId }, closeTime_gt: $pivot }
+      orderBy: closeTime
+      orderDirection: asc
+      first: $first
+    ) {
+      openTime
+      closeTime
+      resolved
+      outcome
+      finalPrice
+      strikePrice
+      market {
+        id
+        marketId
+        question
+        status
+        resolvedOutcome
+        outcomes
       }
     }
   }

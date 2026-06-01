@@ -413,15 +413,65 @@ export class PublicModule extends BaseModule {
    * @param params.seriesKey - Series key, e.g. "btc-updown-5m"
    * @returns The series with `markets` array, or null if not found
    */
+  /**
+   * Get a price market series with a bounded window of member markets around a
+   * pivot close time (for the detail page's time strip).
+   *
+   * Only `limit` windows per side are fetched (default 10 → ~20 total), not the
+   * whole series. Pass `pivotCloseTime` as the close time of the market being
+   * viewed so the strip centers on it; navigating to another window re-pivots
+   * and loads the next batch. Defaults the pivot to now.
+   *
+   * The returned object keeps the legacy shape — `markets` is the assembled
+   * window (oldest → newest), each with a nested `priceMarket` overlay.
+   */
   async getPriceMarketSeries(params: {
     venueId: bigint;
     seriesKey: string;
+    pivotCloseTime?: bigint | string | number;
+    limit?: number;
   }): Promise<any | null> {
+    const pivot =
+      params.pivotCloseTime != null
+        ? BigInt(params.pivotCloseTime).toString()
+        : Math.floor(Date.now() / 1000).toString();
+
     const response = await this.subgraph.request<any>(GET_PRICE_MARKET_SERIES, {
       venueId: params.venueId.toString(),
       seriesKey: params.seriesKey,
+      seriesId: `${params.venueId.toString()}-${params.seriesKey}`,
+      pivot,
+      first: params.limit ?? 10,
     });
-    return response.priceMarketSeries?.[0] || null;
+
+    const series = response.priceMarketSeries?.[0];
+    if (!series) return null;
+
+    // pastWindows comes back newest-first (desc); reverse so the assembled list
+    // runs oldest → newest, then append the future windows (already asc).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const past = (response.pastWindows ?? []).slice().reverse();
+    const future = response.futureWindows ?? [];
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const markets = [...past, ...future].map((pm: any) => ({
+      id: pm.market.id,
+      marketId: pm.market.marketId,
+      question: pm.market.question,
+      status: pm.market.status,
+      resolvedOutcome: pm.market.resolvedOutcome,
+      outcomes: pm.market.outcomes,
+      priceMarket: {
+        openTime: pm.openTime,
+        closeTime: pm.closeTime,
+        resolved: pm.resolved,
+        outcome: pm.outcome,
+        finalPrice: pm.finalPrice,
+        strikePrice: pm.strikePrice,
+      },
+    }));
+
+    return { ...series, markets };
   }
 
   /**
