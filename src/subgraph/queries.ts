@@ -2102,6 +2102,7 @@ export const GET_DPM_ENTRIES = gql`
       amount
       shares
       impliedYesPct
+      impliedPcts
       totalCollateral
       timestamp
       txHash

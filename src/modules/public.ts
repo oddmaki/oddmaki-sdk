@@ -199,13 +199,13 @@ export class PublicModule extends BaseModule {
 
   /**
    * Implied-odds time series for a DPM market (oldest first) — for the odds
-   * chart. Returns `{ time, value }` points where value is outcome 0's implied
-   * percent right after each entry.
+   * chart. Each point carries every outcome's implied percent right after the
+   * entry (`pcts[i]` for outcome i), so the chart can draw one line per outcome.
    */
   async getDpmOddsSeries(params: {
     marketId: bigint;
     first?: number;
-  }): Promise<{ time: number; value: number }[]> {
+  }): Promise<{ time: number; pcts: number[] }[]> {
     const response = await this.subgraph.request<any>(GET_DPM_ENTRIES, {
       marketId: params.marketId.toString(),
       first: params.first ?? 1000,
@@ -215,7 +215,7 @@ export class PublicModule extends BaseModule {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (response.dpmEntries ?? []).map((e: any) => ({
       time: Number(e.timestamp),
-      value: Number(e.impliedYesPct),
+      pcts: ((e.impliedPcts ?? []) as unknown[]).map((p) => Number(p)),
     }));
   }
 
