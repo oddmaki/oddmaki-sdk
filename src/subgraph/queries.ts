@@ -1959,3 +1959,88 @@ export const GET_USER_DPM_POSITIONS = gql`
     }
   }
 `;
+
+/**
+ * Resolve the "current" live/next window for a set of price series in one query.
+ *
+ * The subgraph no longer denormalizes a currentMarket pointer (it scaled
+ * O(history) per series and dragged indexing). Instead the client derives it:
+ * for each series pick the live window (open right now), else the earliest-
+ * closing unresolved window. Bounded and indexed — runs only on grid view.
+ */
+export const GET_SERIES_CURRENT_WINDOWS = gql`
+  query GetSeriesCurrentWindows(
+    $seriesIds: [String!]!
+    $now: BigInt!
+    $first: Int = 200
+  ) {
+    live: priceMarkets(
+      where: {
+        market_: { priceSeries_in: $seriesIds }
+        openTime_lte: $now
+        closeTime_gt: $now
+      }
+      orderBy: closeTime
+      orderDirection: asc
+      first: $first
+    ) {
+      openTime
+      closeTime
+      market {
+        id
+        marketId
+        question
+        outcomes
+        status
+        tickSize
+        lastPriceTick_0
+        lastPriceTick_1
+        lastTradeTimestamp
+        lastTradeTimestamp_0
+        lastTradeTimestamp_1
+        topOfBook {
+          outcome
+          side
+          topTick
+        }
+        totalVolume
+        metadataURI
+        priceSeries {
+          id
+        }
+      }
+    }
+    nextUnresolved: priceMarkets(
+      where: { market_: { priceSeries_in: $seriesIds }, resolved: false }
+      orderBy: closeTime
+      orderDirection: asc
+      first: $first
+    ) {
+      openTime
+      closeTime
+      market {
+        id
+        marketId
+        question
+        outcomes
+        status
+        tickSize
+        lastPriceTick_0
+        lastPriceTick_1
+        lastTradeTimestamp
+        lastTradeTimestamp_0
+        lastTradeTimestamp_1
+        topOfBook {
+          outcome
+          side
+          topTick
+        }
+        totalVolume
+        metadataURI
+        priceSeries {
+          id
+        }
+      }
+    }
+  }
+`;

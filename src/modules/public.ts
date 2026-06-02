@@ -27,6 +27,7 @@ import {
   GET_UNIFIED_MARKET_FEED,
   GET_UNIFIED_MARKET_FEED_BY_VOLUME,
   GET_PRICE_MARKET_SERIES,
+  GET_SERIES_CURRENT_WINDOWS,
   GET_ALL_MARKETS_FEED,
   GET_ALL_MARKETS_FEED_BY_VOLUME,
   GET_RECENT_TRADES,
@@ -472,6 +473,62 @@ export class PublicModule extends BaseModule {
     }));
 
     return { ...series, markets };
+  }
+
+  /**
+   * Resolve the current live/next window for each of `seriesIds` in one query.
+   *
+   * The subgraph no longer denormalizes a `currentMarket` pointer, so the grid
+   * derives it here: per series, prefer the window open right now, else the
+   * earliest-closing unresolved window. Returns a map of seriesId → window
+   * market (with a `priceMarket: { openTime, closeTime }` overlay), ready to be
+   * formatted like a feed `currentMarket`.
+   */
+  async getSeriesCurrentWindows(params: {
+    seriesIds: string[];
+    now?: bigint | string | number;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  }): Promise<Record<string, any>> {
+    if (!params.seriesIds || params.seriesIds.length === 0) return {};
+
+    const now =
+      params.now != null
+        ? BigInt(params.now).toString()
+        : Math.floor(Date.now() / 1000).toString();
+
+    const response = await this.subgraph.request<any>(
+      GET_SERIES_CURRENT_WINDOWS,
+      { seriesIds: params.seriesIds, now },
+    );
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pick = (pm: any) => ({
+      ...pm.market,
+      priceMarket: { openTime: pm.openTime, closeTime: pm.closeTime },
+    });
+
+    // Both lists are closeTime-ascending, so the first window seen per series is
+    // the soonest-closing. Live takes priority over the next unresolved window.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const liveMap: Record<string, any> = {};
+    for (const pm of response.live ?? []) {
+      const sid = pm.market?.priceSeries?.id;
+      if (sid && !liveMap[sid]) liveMap[sid] = pick(pm);
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const nextMap: Record<string, any> = {};
+    for (const pm of response.nextUnresolved ?? []) {
+      const sid = pm.market?.priceSeries?.id;
+      if (sid && !nextMap[sid]) nextMap[sid] = pick(pm);
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result: Record<string, any> = {};
+    for (const sid of params.seriesIds) {
+      const w = liveMap[sid] ?? nextMap[sid];
+      if (w) result[sid] = w;
+    }
+    return result;
   }
 
   /**
