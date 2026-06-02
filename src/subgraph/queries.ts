@@ -653,6 +653,14 @@ export const GET_UNIFIED_MARKET_FEED = gql`
       tags
       metadataURI
       isDpmMarket
+      dpmMarket {
+        poolInitialized
+        totalCollateral
+        outcomes(orderBy: outcomeIndex, orderDirection: asc) {
+          outcomeIndex
+          collateral
+        }
+      }
       createdAt
       venue {
         id
@@ -821,6 +829,14 @@ export const GET_UNIFIED_MARKET_FEED_BY_VOLUME = gql`
       tags
       metadataURI
       isDpmMarket
+      dpmMarket {
+        poolInitialized
+        totalCollateral
+        outcomes(orderBy: outcomeIndex, orderDirection: asc) {
+          outcomeIndex
+          collateral
+        }
+      }
       createdAt
       venue {
         id
@@ -974,6 +990,14 @@ export const GET_ALL_MARKETS_FEED = gql`
       uniqueTraders
       metadataURI
       isDpmMarket
+      dpmMarket {
+        poolInitialized
+        totalCollateral
+        outcomes(orderBy: outcomeIndex, orderDirection: asc) {
+          outcomeIndex
+          collateral
+        }
+      }
       createdAt
       venue {
         id
@@ -1125,6 +1149,14 @@ export const GET_ALL_MARKETS_FEED_BY_VOLUME = gql`
       uniqueTraders
       metadataURI
       isDpmMarket
+      dpmMarket {
+        poolInitialized
+        totalCollateral
+        outcomes(orderBy: outcomeIndex, orderDirection: asc) {
+          outcomeIndex
+          collateral
+        }
+      }
       createdAt
       venue {
         id
