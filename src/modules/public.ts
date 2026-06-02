@@ -28,6 +28,7 @@ import {
   GET_UNIFIED_MARKET_FEED_BY_VOLUME,
   GET_PRICE_MARKET_SERIES,
   GET_SERIES_CURRENT_WINDOWS,
+  GET_DPM_ENTRIES,
   GET_ALL_MARKETS_FEED,
   GET_ALL_MARKETS_FEED_BY_VOLUME,
   GET_RECENT_TRADES,
@@ -176,6 +177,46 @@ export class PublicModule extends BaseModule {
       skip: params.skip ?? 0,
     });
     return response.dpmPositions;
+  }
+
+  /**
+   * Recent pool entries for a DPM market (newest first) — the activity feed.
+   * Each row carries the implied odds snapshot right after the entry.
+   */
+  async getDpmEntries(params: {
+    marketId: bigint;
+    first?: number;
+    skip?: number;
+  }) {
+    const response = await this.subgraph.request<any>(GET_DPM_ENTRIES, {
+      marketId: params.marketId.toString(),
+      first: params.first ?? 50,
+      skip: params.skip ?? 0,
+      orderDirection: "desc",
+    });
+    return response.dpmEntries;
+  }
+
+  /**
+   * Implied-odds time series for a DPM market (oldest first) — for the odds
+   * chart. Returns `{ time, value }` points where value is outcome 0's implied
+   * percent right after each entry.
+   */
+  async getDpmOddsSeries(params: {
+    marketId: bigint;
+    first?: number;
+  }): Promise<{ time: number; value: number }[]> {
+    const response = await this.subgraph.request<any>(GET_DPM_ENTRIES, {
+      marketId: params.marketId.toString(),
+      first: params.first ?? 1000,
+      skip: 0,
+      orderDirection: "asc",
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (response.dpmEntries ?? []).map((e: any) => ({
+      time: Number(e.timestamp),
+      value: Number(e.impliedYesPct),
+    }));
   }
 
   /**

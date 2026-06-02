@@ -2076,3 +2076,39 @@ export const GET_SERIES_CURRENT_WINDOWS = gql`
     }
   }
 `;
+
+/**
+ * Pool (DPM) entries for a market — one row per deposit, newest or oldest first.
+ * Powers the activity feed (desc) and the implied-odds chart (asc). Each row
+ * snapshots the implied odds right after the entry, so clients never recompute.
+ */
+export const GET_DPM_ENTRIES = gql`
+  query GetDpmEntries(
+    $marketId: String!
+    $first: Int = 50
+    $skip: Int = 0
+    $orderDirection: OrderDirection = desc
+  ) {
+    dpmEntries(
+      where: { dpmMarket: $marketId }
+      orderBy: timestamp
+      orderDirection: $orderDirection
+      first: $first
+      skip: $skip
+    ) {
+      id
+      outcome
+      outcomeLabel
+      amount
+      shares
+      impliedYesPct
+      totalCollateral
+      timestamp
+      txHash
+      trader {
+        id
+        address
+      }
+    }
+  }
+`;
